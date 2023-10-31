@@ -1,13 +1,21 @@
-import { User, Permissions } from '@interfaces/user';
+import { User } from '@interfaces/user';
 import { ApiResponse } from '@services/api-service';
 
-export const defaultPermissions: Permissions = {
-  //   canEditSystemMessages: false,
-};
+// export const defaultPermissions: Permissions = {
+//   //   canEditSystemMessages: false,
+// };
 
 export const emptyUser: User = {
   name: '',
   username: '',
+  citizenIdentifier: '',
+  SSN: '',
+  phone: '',
+  company: [],
+  date: '',
+  id: '',
+  password: '',
+  email: '',
   //   permissions: defaultPermissions,
 };
 

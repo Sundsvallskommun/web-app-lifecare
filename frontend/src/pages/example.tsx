@@ -1,32 +1,37 @@
 import DefaultLayout from '@layouts/default-layout/default-layout.component';
 import { useUserStore } from '@services/user-service/user-service';
-import ContentCard from '@components/content-card/content-card';
-import { Link } from '@sk-web-gui/react';
-import NextLink from 'next/link';
+import { Table } from '@components/table/table.component';
 import { shallow } from 'zustand/shallow';
+import { useEffect, useState } from 'react';
+import { getContractorByLoginName, lookUpCitizen } from '@services/contractor.service';
 
 export const Exempelsida: React.FC = () => {
   const user = useUserStore((s) => s.user, shallow);
+  const [contractorData, setContractorData] = useState<any>(null);
+
+  console.log(user);
+
+  useEffect(() => {
+    if (user && user.username) {
+      const fetchContractorData = async () => {
+        try {
+          const fetchedContractorData = await getContractorByLoginName();
+          setContractorData(fetchedContractorData);
+
+          /*const citizen = await lookUpCitizen(user.citizenIdentifier);*/
+        } catch (error) {
+          console.error('Error fetching contractor data:', error);
+        }
+      };
+
+      fetchContractorData();
+    }
+  }, [user]);
 
   return (
+    // TODO byt title
     <DefaultLayout title={`Web app starter - Exempelsida`}>
-      <ContentCard>
-        <div className="text-lg text-content mb-11">
-          <h1>Välkommen{user.name ? ` ${user.name}` : ''}!</h1>
-          <p>
-            Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa.
-            Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec quam felis,
-            ultricies nec, pellentesque eu, pretium quis, sem.
-          </p>
-          {user.name ? (
-            <NextLink href={`${process.env.NEXT_PUBLIC_API_URL}/saml/logout`}>
-              <Link as="span">Logga ut</Link>
-            </NextLink>
-          ) : (
-            ''
-          )}
-        </div>
-      </ContentCard>
+      <Table contractorData={contractorData} />
     </DefaultLayout>
   );
 };

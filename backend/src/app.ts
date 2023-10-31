@@ -90,9 +90,9 @@ const samlStrategy = new Strategy(
         message: 'Missing SAML profile',
       });
     }
-    const { givenName, surname, citizenIdentifier } = profile;
+    const { givenName, surname, username, citizenIdentifier } = profile;
 
-    if (!givenName || !surname || !citizenIdentifier) {
+    if (!givenName || !surname || !username || !citizenIdentifier) {
       return done({
         name: 'SAML_MISSING_ATTRIBUTES',
         message: 'Missing profile attributes',
@@ -100,9 +100,46 @@ const samlStrategy = new Strategy(
     }
 
     try {
-      const personNumber = profile.citizenIdentifier;
-      const citizenResult = await apiService.get<any>({ url: `citizen/1.0/person/${personNumber}/guid` });
+      //const personNumber = profile.citizenIdentifier;
+      /*
+	
+Response body
+Download
+[
+  {
+    "contractId": 3,
+    "personId": "62991f6f-f72f-4c35-bb14-4e8a01f933d4",
+    "classified": "N",
+    "givenname": "Mandus",
+    "lastname": "Lindström",
+    "userId": "81b5eddb-64ce-4e70-a1d4-471383ca2a74",
+    "loginname": "utfmanlin",
+    "emailAddress": "",
+    "restrictedMobile": "0735319098",
+    "title": "Utförare (LOV)",
+    "hireDate": "2023-10-27",
+    "retireDate": "2024-04-27",
+    "ordererId": "ef01149c-dd57-409e-a9bf-856cc0dbd3f8",
+    "orgId": 11275,
+    "orgName": "LOV Testbolag 1",
+    "isEmergencyClosed": false
+  }
+]*/
+      const metaUser = await apiService.get<any>({ url: `/metaadmin/1.0/contractor/loginname/utfmanlin` });
+      // ${username}` });
+      if (metaUser.data.length <= 0) {
+        return done({
+          name: 'MISSING_IN_METAADMIN',
+          message: 'Missing user in meta admin',
+        });
+      }
+      console.log('metaUser', metaUser);
+
+      const { personId, orgId, orgName, retireDate } = metaUser.data[0];
+      // utfmanlinz
+      /*const citizenResult = await apiService.get<any>({ url: `citizen/2.0/${personNumber}/guid` });
       const { data: personId } = citizenResult;
+      console.log('citizenResult', citizenResult);*/
 
       if (!personId) {
         return done({
@@ -116,8 +153,15 @@ const samlStrategy = new Strategy(
         name: `${givenName} ${surname}`,
         givenName: givenName,
         surname: surname,
+        username: username,
+        orgId,
+        orgName,
+        retireDate,
+        citizenIdentifier,
+        isSuperAdmin: true, // or false
       };
 
+      console.log('findUser', findUser);
       done(null, findUser);
     } catch (err) {
       if (err instanceof HttpException && err?.status === 404) {

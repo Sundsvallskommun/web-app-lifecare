@@ -2,6 +2,10 @@ export interface User {
   id: number;
   name: string;
   guid: string;
+  username: string;
+  orgId: number;
+  orgName: string;
   email: string;
-  password: string;
+  citizenIdentifier: string;
+  personId: string;
 }

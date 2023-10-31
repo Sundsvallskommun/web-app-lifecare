@@ -9,13 +9,17 @@ import { ServiceResponse } from '@interfaces/service';
 const handleSetUserResponse: (res: ApiResponse<User>) => User = (res) => ({
   name: res.data.name,
   username: res.data.username,
-  // permissions: res.data.permissions,
+  orgId: res.data.orgId,
+  orgName: res.data.orgName,
+  isSuperAdmin: res.data.isSuperAdmin,
 });
 
 const getMe: () => Promise<ServiceResponse<User>> = () => {
   return apiService
     .get<ApiResponse<User>>('me')
-    .then((res) => ({ data: handleSetUserResponse(res.data) }))
+    .then((res) => {
+      return { data: handleSetUserResponse(res.data) };
+    })
     .catch((e) => ({
       message: e.response?.data.message,
       error: e.response?.status ?? 'UNKNOWN ERROR',

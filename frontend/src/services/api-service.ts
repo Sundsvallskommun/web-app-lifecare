@@ -9,6 +9,7 @@ export interface Data {
 export interface ApiResponse<T> {
   data: T;
   message: string;
+  status: number;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

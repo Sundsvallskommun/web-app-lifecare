@@ -1,5 +1,34 @@
+// export interface User {
+//   name: string;
+//   username: string;
+//   // permissions: Permissions;
+// }
+
+import { Contractor } from './contractor';
+
 export interface User {
   name: string;
   username: string;
-  // permissions: Permissions;
+  orgId: number;
+  orgName: string;
+  isSuperAdmin: boolean;
+}
+
+export interface EditUserModalProps {
+  user: Contractor;
+  onClose: () => void;
+  onSave: () => void;
+  show: boolean;
+}
+
+export interface NewUserModalProps {
+  onClose: () => void;
+  onSave: () => void;
+  show: boolean;
+  isAdmin: boolean;
+}
+
+export interface SelectedItem {
+  label: string;
+  data: { id: number; name: string };
 }

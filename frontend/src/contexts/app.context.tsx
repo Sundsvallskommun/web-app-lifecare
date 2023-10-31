@@ -1,3 +1,4 @@
+import { ConfirmationDialogContextProvider } from '@sk-web-gui/react';
 import { createContext, useContext, useState } from 'react';
 
 export interface AppContextInterface {
@@ -19,16 +20,18 @@ export function AppWrapper({ children }) {
   const [isCookieConsentOpen, setIsCookieConsentOpen] = useState(true);
 
   return (
-    <AppContext.Provider
-      value={{
-        isCookieConsentOpen,
-        setIsCookieConsentOpen: (isOpen: boolean) => setIsCookieConsentOpen(isOpen),
+    <ConfirmationDialogContextProvider>
+      <AppContext.Provider
+        value={{
+          isCookieConsentOpen,
+          setIsCookieConsentOpen: (isOpen: boolean) => setIsCookieConsentOpen(isOpen),
 
-        setDefaults,
-      }}
-    >
-      {children}
-    </AppContext.Provider>
+          setDefaults,
+        }}
+      >
+        {children}
+      </AppContext.Provider>
+    </ConfirmationDialogContextProvider>
   );
 }
 

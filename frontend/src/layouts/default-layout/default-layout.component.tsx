@@ -1,11 +1,15 @@
-import { CookieConsent, Footer, Header, Link } from '@sk-web-gui/react';
+import { CookieConsent, Footer, Header, Link, Profile } from '@sk-web-gui/react';
 import { useRef } from 'react';
 
 import Head from 'next/head';
 import NextLink from 'next/link';
+import { apiURL } from '@utils/api-url';
+import { useUserStore } from '@services/user-service/user-service';
 
 export default function DefaultLayout({ title, children }) {
   const initialFocus = useRef(null);
+
+  const user = useUserStore((s) => s.user);
 
   const setInitialFocus = () => {
     setTimeout(() => {
@@ -17,7 +21,7 @@ export default function DefaultLayout({ title, children }) {
     <div className="DefaultLayout full-page-layout">
       <Head>
         <title>{title}</title>
-        <meta name="description" content="Web app starter" />
+        <meta name="description" content="LOV-Användare" />
       </Head>
 
       <NextLink legacyBehavior={true} href="#content" passHref>
@@ -27,9 +31,15 @@ export default function DefaultLayout({ title, children }) {
       </NextLink>
 
       <Header
-        title={`Web app starter`}
+        title={`Externa leverantörer`}
         LogoLinkWrapperComponent={<NextLink legacyBehavior={true} href={'/'} passHref />}
-      />
+      >
+        <Profile
+          aria-label="Användar namn och företag"
+          showPicture={false}
+          title={`Inloggad som: ${user.name} +på +user.company`}
+        />
+      </Header>
 
       <div className="main-container flex-grow">
         <div className="container">
