@@ -37,7 +37,7 @@ export default function DefaultLayout({ title, children }) {
         <Profile
           aria-label="Användar namn och företag"
           showPicture={false}
-          title={`Inloggad som: ${user.name} +på +user.company`}
+          title={`Inloggad som: ${user.name} på ${user.orgName}`}
         />
       </Header>
 

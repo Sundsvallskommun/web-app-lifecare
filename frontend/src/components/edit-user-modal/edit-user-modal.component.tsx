@@ -1,9 +1,11 @@
 import ValidatedInput from '@components/validated-input/validated-input.component';
 import { EditUserModalProps } from '@interfaces/user';
+import { resetPasswordAndSendSMS } from '@services/account.service';
 import { updateContractorDetails } from '@services/contractor.service';
 import { Button, Modal, useConfirm, useMessage } from '@sk-web-gui/react';
 import { validateEmail, validatePhone } from '@utils/validation';
 import { useEffect, useState } from 'react';
+import useContractorStore from 'src/store/useContractorStore.store';
 
 const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onSave, show }) => {
   // User info
@@ -14,6 +16,8 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onSave, sh
   const [phoneError, setPhoneError] = useState('');
   const [emailError, setEmailError] = useState('');
 
+  const fetchContractorData = useContractorStore((s) => s.fetchContractorData);
+
   const message = useMessage();
   const { showConfirmation } = useConfirm();
 
@@ -22,7 +26,6 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onSave, sh
     setEmail(user.emailAddress);
     setPhoneError('');
     setEmailError('');
-    //setMonthsToAdd(1);
   }, [user.restrictedMobile, user.emailAddress]);
 
   const handleSave = async () => {
@@ -35,6 +38,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onSave, sh
           personId: user.personId,
           restrictedMobile: phone,
         });
+        fetchContractorData();
       } catch (error) {
         console.error('Error updateContractorDetails', error);
       }
@@ -50,29 +54,42 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onSave, sh
     }
   };
 
-  const handleSendPassword = () => {
-    message({
-      message: 'Lösenord har skickats till användaren via SMS.',
-      status: 'success',
-      position: 'bottom-right',
-    });
-  };
+  // const handleSendPassword = () => {
+  //   message({
+  //     message: 'Lösenord har skickats till användaren via SMS.',
+  //     status: 'success',
+  //     position: 'bottom-right',
+  //   });
+  // };
 
-  const handleResetPassword = () => {
+  const handleResetPassword = async () => {
     const confirmationTitle = 'Vänligen bekräfta ditt val.';
     const confirmationMessage = 'Vill du återställa och skicka ett nytt lösenord via SMS?';
     const confirmLabel = 'Ja, återställ och skicka';
     const dismissLabel = 'Avbryt';
 
-    showConfirmation(confirmationTitle, confirmationMessage, confirmLabel, dismissLabel).then((result) => {
-      if (result === true) {
+    const confirmed = await showConfirmation(confirmationTitle, confirmationMessage, confirmLabel, dismissLabel);
+
+    if (confirmed) {
+      try {
+        // Call the password reset service and pass in the necessary data
+        const resetResponse = await resetPasswordAndSendSMS({ personId: user.personId });
+        // Handle the response from the reset service
         message({
           message: 'Lösenordet har ändrats och skickats till användaren via SMS.',
           status: 'success',
           position: 'bottom-right',
         });
+      } catch (error) {
+        // Handle any errors that occur during the reset process
+        console.error('Error resetting password', error);
+        message({
+          message: 'Det gick inte att återställa lösenordet.',
+          status: 'error',
+          position: 'bottom-right',
+        });
       }
-    });
+    }
   };
 
   const handlePhoneChange = (e) => {
@@ -123,7 +140,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onSave, sh
             id="ssnInput"
             className="text-gray-400 h-16 w-4/6 text-base"
             type="text"
-            value={user.personId}
+            value={user.personNumber}
             readOnly
             disabled
           />
@@ -131,7 +148,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onSave, sh
 
         <label htmlFor="phoneInput" className="flex justify-between items-center">
           <div className="flex items-center">
-            Telefonnummer{' '}
+            Telefonnummer
             <abbr className="no-underline text-red-500 ml-1" title="Required">
               *
             </abbr>
@@ -148,7 +165,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onSave, sh
 
         <label htmlFor="emailInput" className="flex justify-between items-center">
           <span className="flex items-center">
-            E-post{' '}
+            E-post
             <abbr className="no-underline text-red-500 ml-1" title="Required">
               *
             </abbr>
@@ -163,6 +180,18 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onSave, sh
           />
         </label>
 
+        <label htmlFor="companyInput" className="flex justify-between items-center">
+          Företag
+          <input
+            id="companyInput"
+            className="text-gray-400 h-16 w-4/6 text-base"
+            type="text"
+            value={user.orgName}
+            readOnly
+            disabled
+          />
+        </label>
+
         <label htmlFor="monthsToAddSelect" className="flex justify-between items-center ">
           Slutdatum
           <select
@@ -172,16 +201,16 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onSave, sh
             onChange={(e) => setMonthsToAdd(Number(e.target.value))}
           >
             <option value={0}>-</option>
-            <option value={1}>1 månad till</option>
-            <option value={2}>2 månader till</option>
-            <option value={3}>3 månader till</option>
+            <option value={1}>Om en 1 månad till</option>
+            <option value={2}>Om en 2 månader till</option>
+            <option value={3}>Om en 3 månader till</option>
           </select>
         </label>
 
         <div className="flex justify-between">
-          <Button variant="outline" onClick={handleSendPassword} aria-label="Skicka lösen">
+          {/* <Button variant="outline" onClick={handleSendPassword} aria-label="Skicka lösen">
             Skicka lösen
-          </Button>
+          </Button> */}
           <Button variant="outline" onClick={handleResetPassword} aria-label="Skicka nytt lösenord">
             Nytt lösen
           </Button>

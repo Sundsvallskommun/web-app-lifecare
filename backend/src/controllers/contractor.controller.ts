@@ -17,6 +17,8 @@ export class NewContractorDTO {
   personId: string;
   @IsNumber()
   ttlMonths: number;
+  @IsNumber()
+  orgId: number;
   @IsString()
   emailAddress: string;
   // Person
@@ -78,8 +80,14 @@ export class ContractorController {
   @UseBefore(authMiddleware)
   async newOrgUser(@Req() req: RequestWithUser, @Body() body: NewContractorDTO): Promise<ResponseData<any>> {
     try {
-      const { personId, ttlMonths, emailAddress, customFriendlyGivenname, restrictedMobile } = body;
-      const { orgId, guid } = req.user;
+      console.log('req.user', req.user);
+      console.log('req.user', body);
+      const { personId, ttlMonths, emailAddress, customFriendlyGivenname, restrictedMobile, orgId } = body;
+      // const { orgId, guid } = req.user;
+      const { orgId: userOrgId, guid, isSuperAdmin } = req.user;
+
+      const chosenOrgId = isSuperAdmin && body.orgId ? body.orgId : userOrgId;
+
       const urlContractor = `/metaadmin/1.0/contractor`;
 
       const newContractorData = {
@@ -87,7 +95,7 @@ export class ContractorController {
         ttlMonths,
         emailAddress,
         // Based on the logged in user wh0 created the user
-        orgId: orgId,
+        orgId: chosenOrgId,
         creatorPersonId: guid,
       };
       const contractorRes = await this.apiService.post<{ status: string }>({ url: urlContractor, data: newContractorData });
@@ -110,7 +118,6 @@ export class ContractorController {
   @UseBefore(authMiddleware)
   async updateOrgUser(@Req() req: RequestWithUser, @Body() body: PathContractorDTO): Promise<ResponseData<any>> {
     try {
-      // const { personId, contractId, ttlMonths, emailAddress, customFriendlyGivenname, restrictedMobile } = body;
       const { personId, contractId, ttlMonths, restrictedMobile, emailAddress } = body;
       const { orgId, guid } = req.user;
       const url = `/metaadmin/1.0/contractor/${contractId}`;

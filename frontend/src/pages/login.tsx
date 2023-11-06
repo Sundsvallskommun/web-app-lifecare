@@ -24,13 +24,13 @@ export default function Start() {
 
   return (
     <>
-      <EmptyLayout title="Web app starter - Logga In">
+      <EmptyLayout title="Kontohantering.sundsvall.se - Logga In">
         <main>
           <div className="flex items-center justify-center min-h-screen">
             <div className="max-w-5xl w-full flex flex-col bg-white p-20 shadow-lg text-left">
               <div className="mb-14">
-                <h1 className="mb-10 text-xl">Web app starter</h1>
-                <p className="my-0">Beskrivning av appen</p>
+                <h1 className="mb-10 text-xl">Kontohantering.sundsvall.se</h1>
+                <p className="my-0">Hantering av LOV användare till Lifecare</p>
               </div>
 
               <Button variant="solid" color="primary" onClick={() => onLogin()} ref={initalFocus} data-cy="loginButton">

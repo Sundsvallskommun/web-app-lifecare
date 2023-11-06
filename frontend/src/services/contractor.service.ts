@@ -4,6 +4,7 @@ import { ApiResponse, apiService } from './api-service';
 const emptyContractor: Contractor = {
   contractId: 0,
   personId: '',
+  personNumber: '',
   classified: '',
   givenname: '',
   lastname: '',
@@ -37,7 +38,15 @@ export interface NewContractor {
   orgId?: number; // only for super admins
   ttlMonths: number;
   emailAddress: string;
+  // orgName: string | string[];
   customFriendlyGivenname?: string;
+  restrictedMobile: string;
+}
+
+export interface ContractorUpdateData {
+  ttlMonths: number;
+  contractId: number;
+  personId: string;
   restrictedMobile: string;
 }
 
@@ -79,7 +88,12 @@ export const newContractor = async (
   contractor: NewContractor
 ): Promise<{ data?: Contractor; message?: string; error?: Error }> => {
   try {
-    const response = await apiService.post<Contractor>(`/contractor`, contractor);
+    const contractorData = {
+      ...contractor,
+      // orgName: Array.isArray(contractor.orgName) ? contractor.orgName.join(', ') : contractor.orgName,
+    };
+
+    const response = await apiService.post<Contractor>(`/contractor`, contractorData);
     return { data: response.data, message: 'Contractor created successfully' };
   } catch (e) {
     return {
@@ -92,7 +106,7 @@ export const newContractor = async (
 };
 
 export const updateContractorDetails = async (
-  updatedData: any
+  updatedData: ContractorUpdateData
 ): Promise<{ data?: Contractor; message?: string; error?: Error }> => {
   try {
     const response = await apiService.patch<Contractor>(`/contractor`, updatedData);

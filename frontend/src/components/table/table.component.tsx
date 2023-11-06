@@ -1,33 +1,43 @@
-import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined';
-import ModeEditOutlinedIcon from '@mui/icons-material/ModeEditOutlined';
-import { Button, DataTable, DataTableHeader, Divider, SearchBar, useConfirm, useMessage } from '@sk-web-gui/react';
-import { Fragment, useState } from 'react';
 import EditUserModal from '@components/edit-user-modal/edit-user-modal.component';
 import NewUserModal from '@components/new-user-modal/new-user-modal.component';
+import { Contractor, ContractorDataFormat, ContractorWithName } from '@interfaces/contractor';
+import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined';
+import ModeEditOutlinedIcon from '@mui/icons-material/ModeEditOutlined';
 import { deleteContractor } from '@services/contractor.service';
-import { Contractor, ContractorWithName } from '@interfaces/contractor';
+import { useUserStore } from '@services/user-service/user-service';
+
+import {
+  Button,
+  DataTable,
+  DataTableHeader,
+  Divider,
+  ExclamationIcon,
+  Icon,
+  SearchBar,
+  useConfirm,
+  useMessage,
+} from '@sk-web-gui/react';
+import { extractContractorArray } from '@utils/extractContractorArray';
+import { isRetireDateSoonEnding } from '@utils/is-retire-date';
+import { Fragment, useState } from 'react';
+import useContractorStore from 'src/store/useContractorStore.store';
+import { shallow } from 'zustand/shallow';
 
 interface TableProps {
-  contractorData: {
-    data: {
-      data: Contractor[];
-      message: string;
-      status: number;
-    };
-    status: number;
-  };
+  contractorData: ContractorDataFormat;
 }
 
 export const Table: React.FunctionComponent<TableProps> = ({ contractorData }) => {
   const [isEditModalOpen, setEditModalOpen] = useState<boolean>(false);
   const [isNewUserModalOpen, setNewUserModalOpen] = useState<boolean>(false);
   const [selectedUser, setSelectedUser] = useState<Contractor | null>(null);
-  // TODO
-  const [isAdmin, setIsAdmin] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const rawData = contractorData?.data?.data || [];
-  console.log('rawDatarawDatarawData', rawData);
+  const user = useUserStore((s) => s.user, shallow);
+
+  const fetchContractorData = useContractorStore((s) => s.fetchContractorData);
+
+  const rawData = extractContractorArray(contractorData || null);
   const isLoading = contractorData === null;
 
   const message = useMessage();
@@ -55,21 +65,15 @@ export const Table: React.FunctionComponent<TableProps> = ({ contractorData }) =
             status: 'success',
             position: 'bottom-right',
           });
-          // Logic to update the local users state to reflect the delete goes here
-          console.log('Deleting user:', user);
+          fetchContractorData();
         }
       }
     });
   };
 
   const handleEdit = (user: Contractor): void => {
-    console.log('Editing user:', user);
     setSelectedUser(user);
     setEditModalOpen(true);
-  };
-
-  const maskSSN = (ssn: string): string => {
-    return ssn ? `${ssn.substring(0, ssn.length - 5)}-XXXX` : '';
   };
 
   const onSearchChangeHandler = (e: React.BaseSyntheticEvent) => {
@@ -102,16 +106,45 @@ export const Table: React.FunctionComponent<TableProps> = ({ contractorData }) =
     { property: 'name', label: 'Namn', isShown: true, isColumnSortable: true },
     { property: 'loginname', label: 'Användarnamn', isShown: true, isColumnSortable: true },
     { property: 'emailAddress', label: 'E-post', isShown: true, isColumnSortable: true },
-    ...(isAdmin ? [{ property: 'orgName', label: 'Företag', isShown: true, isColumnSortable: true }] : []),
+
+    ...(user.isSuperAdmin
+      ? [
+          {
+            property: 'orgName',
+            label: 'Företag',
+            isShown: true,
+            isColumnSortable: true,
+            renderColumn: (value) => {
+              const orgNames = value.includes(',') ? value.split(', ') : [value];
+
+              // If value is an array, join it into a string and wrap in a span element
+              // If not, just return the value as it is but still wrapped in a span
+              return <span>{orgNames.join(', ')}</span>;
+            },
+          },
+        ]
+      : []),
 
     {
-      renderColumn: (value, user) => <span>{maskSSN(user.personId)}</span>,
+      renderColumn: (value, user) => <span>{user.personNumber}</span>,
       label: 'Pers. nr',
       isShown: true,
       isColumnSortable: true,
     },
     { property: 'restrictedMobile', label: 'Telefonnummer', isShown: true, isColumnSortable: true },
-    { property: 'retireDate', label: 'Slutdatum', isShown: true, isColumnSortable: true },
+    {
+      renderColumn: (value, user) => (
+        <div className="flex items-center">
+          <span>{user.retireDate}</span>
+          {isRetireDateSoonEnding(user.retireDate) && (
+            <Icon as={ExclamationIcon} label="exclamationI" className="w-9 h-9 ml-4 text-red-500" />
+          )}
+        </div>
+      ),
+      label: 'Slutdatum',
+      isShown: true,
+      isColumnSortable: true,
+    },
     {
       renderColumn: (value, user) => (
         <Fragment>
@@ -173,10 +206,9 @@ export const Table: React.FunctionComponent<TableProps> = ({ contractorData }) =
         show={isNewUserModalOpen}
         onClose={() => setNewUserModalOpen(false)}
         onSave={() => {
-          // Logic to save the new user goes here.
           setNewUserModalOpen(false);
         }}
-        isAdmin={isAdmin}
+        isAdmin={user.isSuperAdmin}
         aria-modal="true"
       />
     </div>

@@ -11,7 +11,7 @@ const handleSetUserResponse: (res: ApiResponse<User>) => User = (res) => ({
   username: res.data.username,
   orgId: res.data.orgId,
   orgName: res.data.orgName,
-  isSuperAdmin: res.data.isSuperAdmin,
+  isSuperAdmin: res.data.isSuperAdmin || true,
 });
 
 const getMe: () => Promise<ServiceResponse<User>> = () => {

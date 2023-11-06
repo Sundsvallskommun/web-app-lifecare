@@ -8,18 +8,22 @@ import { ApiResponse } from '@services/api-service';
 export const emptyUser: User = {
   name: '',
   username: '',
-  citizenIdentifier: '',
-  SSN: '',
-  phone: '',
-  company: [],
-  date: '',
-  id: '',
-  password: '',
-  email: '',
+  // citizenIdentifier: '',
+  // SSN: '',
+  // phone: '',
+  // company: [],
+  // date: '',
+  // id: '',
+  // password: '',
+  // email: '',
+  isSuperAdmin: true,
+  orgId: null,
+  orgName: '',
   //   permissions: defaultPermissions,
 };
 
 export const emptyUserResponse: ApiResponse<User> = {
   data: emptyUser,
   message: 'none',
+  status: 204,
 };

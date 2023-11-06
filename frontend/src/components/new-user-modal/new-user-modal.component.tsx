@@ -1,10 +1,12 @@
 import ValidatedInput from '@components/validated-input/validated-input.component';
 import { NewUserModalProps, SelectedItem } from '@interfaces/user';
 import { lookUpCitizen, newContractor } from '@services/contractor.service';
-import { getPersonDetails } from '@services/person.service';
+import { getOrganizationByTreeLevelAndCompanyId } from '@services/organization.service';
 import { Button, Divider, Modal, Select, useMessage } from '@sk-web-gui/react';
 import { luhnCheck, validateEmail, validatePhone } from '@utils/validation';
 import { ChangeEvent, useEffect, useState } from 'react';
+import useCompanyStore from 'src/store/useCompanyStore.store';
+import useContractorStore from 'src/store/useContractorStore.store';
 
 const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, isAdmin }) => {
   // User info
@@ -14,6 +16,7 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, isAd
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
+  const [companies, setCompanies] = useState([]);
   const [phone, setPhone] = useState('');
   const [monthsToAdd, setMonthsToAdd] = useState(1);
   const [selectedCompanies, setSelectedCompanies] = useState([]);
@@ -27,6 +30,11 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, isAd
   const [SSNError, setSSNError] = useState('');
   const [emailError, setEmailError] = useState('');
   const [phoneError, setPhoneError] = useState('');
+
+  const [isLoading, setIsLoading] = useState(false);
+
+  const fetchContractorData = useContractorStore((s) => s.fetchContractorData);
+  const { companyList, fetchCompanies } = useCompanyStore();
 
   const message = useMessage();
 
@@ -48,64 +56,58 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, isAd
     }
   }, [show]);
 
-  const companies = [
-    { id: 1, name: 'Företag 1' },
-    { id: 2, name: 'Företag 2' },
-    { id: 3, name: 'Företag 3' },
-  ];
+  useEffect(() => {
+    fetchCompanies();
+  }, []);
 
-  const handleCompanyChange = (selectedItems: SelectedItem[]) => {
-    if (!selectedItems || !Array.isArray(selectedItems)) {
-      console.error('Invalid selectedItems format:', selectedItems);
-      return;
-    }
+  const handleCompanyChange = (selectedItems) => {
+    const orgIds = selectedItems.map((item) => item.data.orgId);
 
-    const lastSelectedItem = selectedItems[selectedItems.length - 1];
-
-    if (!lastSelectedItem || !lastSelectedItem.data) {
-      console.error('Invalid lastSelectedItem format:', lastSelectedItem);
-      return;
-    }
-
-    const updatedSelectedCompanies = [...selectedCompanies];
-
-    // Check if the last selected item is already in the array
-    const existingIndex = updatedSelectedCompanies.findIndex((company) => company.id === lastSelectedItem.data.id);
-
-    if (existingIndex !== -1) {
-      // Item exists, remove it from the array
-      updatedSelectedCompanies.splice(existingIndex, 1);
-    } else {
-      // Item doesn't exist, add it to the array
-      updatedSelectedCompanies.push(lastSelectedItem.data);
-    }
-
-    // Update the state with the modified array
-    setSelectedCompanies(updatedSelectedCompanies);
+    setCompanies(orgIds); // This will save the array of orgIds
+    setSelectedCompanies(selectedItems);
+    console.log('companies', companies);
+    console.log('selectedCompanies', selectedCompanies);
   };
 
   const handleSave = async () => {
-    await newContractor({
-      personId: personId,
-      ttlMonths: monthsToAdd,
-      emailAddress: email,
-      restrictedMobile: phone,
-    });
-    message({
-      message: 'Användaren skapades.',
-      status: 'success',
-      position: 'bottom-right',
-    });
+    // const orgIds = selectedCompanies.map((company) => company.data.orgId);
+    for (const orgId of companies) {
+      try {
+        await newContractor({
+          personId: personId,
+          ttlMonths: monthsToAdd,
+          emailAddress: email,
+          orgId: orgId, // Here you pass the single orgId
+          restrictedMobile: phone,
+        });
+        // You might want to send a message for each success or just once after all have been created
+        message({
+          message: `Användaren skapades för orgId: ${orgId}.`,
+          status: 'success',
+          position: 'bottom-right',
+        });
+      } catch (error) {
+        console.error(`Error creating contractor for orgId ${orgId}:`, error);
+        // Break out of the loop or handle the error accordingly
+        message({
+          message: `Error när användaren skapades för orgId ${orgId}.`,
+          status: 'error',
+          position: 'bottom-right',
+        });
+        break; // If you want to stop creating new contractors on the first error
+      }
+    }
+
     if (onSave) {
       onSave();
+      fetchContractorData();
     }
   };
 
   const handleGetInfo = async () => {
-    console.log('Hämtar info');
+    setIsLoading(true);
 
     try {
-      console.log('Result SSNSSNSSN:', SSN);
       const citizen = await lookUpCitizen(SSN);
 
       if (citizen.data) {
@@ -113,7 +115,6 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, isAd
         setPersonId(citizen.data.personId);
         setFirstName(citizen.data.givenname);
         setLastName(citizen.data.lastname);
-        // ... set other state based on the result data if needed
         setInfoFetched(true);
 
         message({
@@ -135,8 +136,10 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, isAd
         status: 'error',
         position: 'bottom-right',
       });
+    } finally {
+      setIsLoading(false);
+      setInfoButtonClicked(true);
     }
-    setInfoButtonClicked(true);
   };
 
   const validateSSN = (ssn) => {
@@ -219,6 +222,7 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, isAd
 
         <div className="flex justify-end ">
           <Button
+            loading={isLoading}
             color="primary"
             variant="solid"
             onClick={handleGetInfo}
@@ -306,15 +310,10 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, isAd
           <label className="flex justify-between items-center">
             Företag
             <div className="h-14 w-4/6">
-              <Select
-                multiple
-                value={selectedCompanies.map((company) => ({ label: company?.name, data: company }))}
-                onChange={handleCompanyChange}
-                aria-label="Välj företag"
-              >
-                {companies.map((company) => (
-                  <Select.Option key={company.id} value={{ label: company.name, data: company }}>
-                    {company.name}
+              <Select multiple value={selectedCompanies} onChange={handleCompanyChange} aria-label="Välj företag">
+                {companyList?.map((company) => (
+                  <Select.Option key={company.orgId} value={{ label: company.orgName, data: company }}>
+                    {company.orgName}
                   </Select.Option>
                 ))}
               </Select>

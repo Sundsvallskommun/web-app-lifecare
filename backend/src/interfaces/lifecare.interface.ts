@@ -24,7 +24,7 @@ export interface UpdatePersonDetailsData {
 
 export interface ContractorData {
   personId: string;
-  orgId: string;
+  orgId: number;
   ttlMonths: number;
   emailAddress: string;
   creatorPersonId: string;

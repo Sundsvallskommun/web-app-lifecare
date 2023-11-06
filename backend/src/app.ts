@@ -45,6 +45,7 @@ import { Profile } from './interfaces/profile.interface';
 import ApiService from '@/services/api.service';
 import { HttpException } from './exceptions/HttpException';
 import { join } from 'path';
+import { User } from './interfaces/users.interface';
 
 const SessionStoreCreate = SESSION_MEMORY ? createMemoryStore(session) : createFileStore(session);
 const sessionTTL = 4 * 24 * 60 * 60;
@@ -133,13 +134,12 @@ Download
           message: 'Missing user in meta admin',
         });
       }
-      console.log('metaUser', metaUser);
+      // console.log('metaUser', metaUser);
 
       const { personId, orgId, orgName, retireDate } = metaUser.data[0];
       // utfmanlinz
       /*const citizenResult = await apiService.get<any>({ url: `citizen/2.0/${personNumber}/guid` });
-      const { data: personId } = citizenResult;
-      console.log('citizenResult', citizenResult);*/
+      const { data: personId } = citizenResult;*/
 
       if (!personId) {
         return done({
@@ -161,7 +161,6 @@ Download
         isSuperAdmin: true, // or false
       };
 
-      console.log('findUser', findUser);
       done(null, findUser);
     } catch (err) {
       if (err instanceof HttpException && err?.status === 404) {

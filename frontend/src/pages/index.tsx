@@ -5,7 +5,7 @@ import { useEffect } from 'react';
 export default function Index() {
   const router = useRouter();
   useEffect(() => {
-    router.push('/example');
+    router.push('/kontohantering');
   }, []);
   return <LoaderFullScreen />;
 }

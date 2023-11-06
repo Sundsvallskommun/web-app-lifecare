@@ -1,11 +1,13 @@
 export interface User {
-  id: number;
+  retireDate: number;
   name: string;
+  email: string;
   guid: string;
+  givenName: string;
+  surname: string;
   username: string;
   orgId: number;
   orgName: string;
-  email: string;
   citizenIdentifier: string;
-  personId: string;
+  isSuperAdmin: boolean;
 }

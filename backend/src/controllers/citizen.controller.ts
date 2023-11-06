@@ -34,7 +34,11 @@ export class CitizenController {
       const { SocialSecurityNumber } = body;
       const urlForGuid = `/citizen/2.0/${SocialSecurityNumber}/guid`;
       const resGuid = await this.apiService.get<any>({ url: urlForGuid });
-      // TODO: add error handling, what if res is empty?
+
+      if (!resGuid || !resGuid.data) {
+        throw new HttpException(404, 'GUID not found for the provided SocialSecurityNumber');
+      }
+
       const personId = resGuid.data;
 
       const url = `/citizen/2.0/${personId}`;

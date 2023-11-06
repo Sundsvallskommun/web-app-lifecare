@@ -5,10 +5,19 @@ import { UserController } from './controllers/user.controller';
 import { HealthController } from './controllers/health.controller';
 import { ContractorController } from './controllers/contractor.controller';
 import { CitizenController } from './controllers/citizen.controller';
-import { PersonController } from './controllers/person.controller';
+import { OrganizationController } from './controllers/organization.controller';
+import { AccountController } from './controllers/account.controller';
 
 validateEnv();
 
-const app = new App([IndexController, UserController, CitizenController, ContractorController, PersonController, HealthController]);
+const app = new App([
+  IndexController,
+  UserController,
+  CitizenController,
+  AccountController,
+  ContractorController,
+  OrganizationController,
+  HealthController,
+]);
 
 app.listen();
