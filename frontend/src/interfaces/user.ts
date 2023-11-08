@@ -9,9 +9,10 @@ import { Contractor } from './contractor';
 export interface User {
   name: string;
   username: string;
-  orgId: number;
-  orgName: string;
+  orgId?: number;
+  orgName?: string;
   isSuperAdmin: boolean;
+  isAdmin: boolean;
 }
 
 export interface EditUserModalProps {

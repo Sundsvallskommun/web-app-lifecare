@@ -37,7 +37,7 @@ export default function DefaultLayout({ title, children }) {
         <Profile
           aria-label="Användar namn och företag"
           showPicture={false}
-          title={`Inloggad som: ${user.name} på ${user.orgName}`}
+          title={`${user.name}`}
         />
       </Header>
 
@@ -47,7 +47,7 @@ export default function DefaultLayout({ title, children }) {
         </div>
       </div>
 
-      <CookieConsent
+      {/*<CookieConsent
         title="Kakor på Nya metakatalogen"
         body={
           <p>
@@ -85,7 +85,7 @@ export default function DefaultLayout({ title, children }) {
           // FIXME: do stuff with cookies?
           // NO ANO FUNCTIONS
         }}
-      />
+      />*/}
 
       <Footer color="gray">
         <div className="flex justify-between gap-16 md:gap-32">

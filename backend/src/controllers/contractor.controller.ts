@@ -43,13 +43,6 @@ export class PathContractorDTO {
   @IsString()
   @IsOptional()
   emailAddress?: string;
-
-  /*
-  
-  // Person
-  @IsString()
-  @IsOptional()
-  customFriendlyGivenname: string;*/
 }
 
 export class DeleteContractorDTO {
@@ -66,10 +59,27 @@ export class ContractorController {
   @UseBefore(authMiddleware)
   async getUserCompanyContractors(@Req() req: RequestWithUser): Promise<ResponseData<any>> {
     try {
-      const { orgId } = req.user;
-      const url = `/metaadmin/1.0/organization/${orgId}/contractors`;
-      const res = await this.apiService.get<{ status: string }>({ url });
-      return { data: res.data, message: 'success', status: 200 };
+      const { contracts, isSuperAdmin } = req.user;
+
+      if (isSuperAdmin) {
+        const url = `/metaadmin/1.0/contractors`;
+        const res = await this.apiService.get<any>({ url });
+        return { data: res.data, message: 'success', status: 200 };
+      }
+
+      const orgIds = contracts?.map(contract => contract.orgId);
+
+      const contractors = [];
+
+      for (let i = 0; i < orgIds.length; i++) {
+        const orgId = orgIds[i];
+        const url = `/metaadmin/1.0/organization/${orgId}/contractors`;
+        const res = await this.apiService.get<any>({ url });
+        const { data } = res;
+        contractors.push(...data);
+      }
+
+      return { data: contractors, message: 'success', status: 200 };
     } catch (error) {
       throw new HttpException(500, error.message);
     }
@@ -80,10 +90,7 @@ export class ContractorController {
   @UseBefore(authMiddleware)
   async newOrgUser(@Req() req: RequestWithUser, @Body() body: NewContractorDTO): Promise<ResponseData<any>> {
     try {
-      console.log('req.user', req.user);
-      console.log('req.user', body);
       const { personId, ttlMonths, emailAddress, customFriendlyGivenname, restrictedMobile, orgId } = body;
-      // const { orgId, guid } = req.user;
       const { orgId: userOrgId, guid, isSuperAdmin } = req.user;
 
       const chosenOrgId = isSuperAdmin && body.orgId ? body.orgId : userOrgId;
@@ -94,18 +101,18 @@ export class ContractorController {
         personId,
         ttlMonths,
         emailAddress,
-        // Based on the logged in user wh0 created the user
+        // Based on the logged in user who created the user
         orgId: chosenOrgId,
         creatorPersonId: guid,
       };
-      const contractorRes = await this.apiService.post<{ status: string }>({ url: urlContractor, data: newContractorData });
+      const contractorRes = await this.apiService.post<any>({ url: urlContractor, data: newContractorData });
 
       const urlPerson = `/metaadmin/1.0/person/${personId}`;
       const personData = {
         customFriendlyGivenname,
         restrictedMobile,
       };
-      await this.apiService.patch<{ status: string }>({ url: urlPerson, data: personData });
+      await this.apiService.patch<any>({ url: urlPerson, data: personData });
 
       return { data: contractorRes, message: 'success', status: 200 };
     } catch (error) {
@@ -126,12 +133,8 @@ export class ContractorController {
 
       if (ttlMonths) {
         const patchContractorData = {
-          // personId,
           ttlMonths,
           //emailAddress,
-          // Based on the logged in user who created the user
-          //orgId: orgId,
-          //creatorPersonId: guid,
         };
         res = await this.apiService.patch<{ status: string }>({ url, data: patchContractorData });
       }

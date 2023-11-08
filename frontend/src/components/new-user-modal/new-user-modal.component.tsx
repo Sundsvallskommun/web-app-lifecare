@@ -58,15 +58,13 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, isAd
 
   useEffect(() => {
     fetchCompanies();
-  }, []);
+  }, [fetchCompanies]);
 
   const handleCompanyChange = (selectedItems) => {
     const orgIds = selectedItems.map((item) => item.data.orgId);
 
     setCompanies(orgIds); // This will save the array of orgIds
     setSelectedCompanies(selectedItems);
-    console.log('companies', companies);
-    console.log('selectedCompanies', selectedCompanies);
   };
 
   const handleSave = async () => {

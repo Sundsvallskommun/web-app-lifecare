@@ -170,13 +170,13 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onSave, sh
               *
             </abbr>
           </span>
-          <ValidatedInput
+          <input
             id="emailInput"
+            className="text-gray-400 h-16 w-4/6 text-base"
             type="email"
             value={email}
-            error={emailError}
-            onChange={handleEmailChange}
-            aria-required="true"
+            readOnly
+            disabled
           />
         </label>
 

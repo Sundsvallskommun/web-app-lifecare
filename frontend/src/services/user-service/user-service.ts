@@ -9,9 +9,10 @@ import { ServiceResponse } from '@interfaces/service';
 const handleSetUserResponse: (res: ApiResponse<User>) => User = (res) => ({
   name: res.data.name,
   username: res.data.username,
-  orgId: res.data.orgId,
-  orgName: res.data.orgName,
-  isSuperAdmin: res.data.isSuperAdmin || true,
+  isSuperAdmin: res.data.isSuperAdmin,
+  isAdmin: res.data.isAdmin,
+  orgId: res.data.orgId ?? undefined,
+  orgName: res.data.orgName ?? undefined,
 });
 
 const getMe: () => Promise<ServiceResponse<User>> = () => {

@@ -40,19 +40,17 @@ import {
 } from '@config';
 import errorMiddleware from '@middlewares/error.middleware';
 import { logger, stream } from '@utils/logger';
-import { PrismaClient } from '@prisma/client';
 import { Profile } from './interfaces/profile.interface';
 import ApiService from '@/services/api.service';
 import { HttpException } from './exceptions/HttpException';
 import { join } from 'path';
-import { User } from './interfaces/users.interface';
+import { Contractor, User } from './interfaces/users.interface';
 
 const SessionStoreCreate = SESSION_MEMORY ? createMemoryStore(session) : createFileStore(session);
 const sessionTTL = 4 * 24 * 60 * 60;
 // NOTE: memory uses ms while file uses seconds
 const sessionStore = new SessionStoreCreate(SESSION_MEMORY ? { checkPeriod: sessionTTL * 1000 } : { sessionTTL, path: './data/sessions' });
 
-const prisma = new PrismaClient();
 const apiService = new ApiService();
 
 passport.serializeUser(function (user, done) {
@@ -65,23 +63,14 @@ passport.deserializeUser(function (user, done) {
 const samlStrategy = new Strategy(
   {
     disableRequestedAuthnContext: true,
-    //attributeConsumingServiceIndex: '2',
-    //xmlSignatureTransforms: ['test'],
-    //authnContext: ['urn:oasis:names:tc:SAML:2.0:ac:classes:unspecified'],
     identifierFormat: 'urn:oasis:names:tc:SAML:2.0:nameid-format:transient',
     callbackUrl: SAML_CALLBACK_URL,
     entryPoint: SAML_ENTRY_SSO,
-    //decryptionPvk: SAML_PRIVATE_KEY,
     privateKey: SAML_PRIVATE_KEY,
     // Identity Provider's public key
     cert: SAML_IDP_PUBLIC_CERT,
     issuer: SAML_ISSUER,
     wantAssertionsSigned: false,
-    // signatureAlgorithm: 'sha256',
-    // digestAlgorithm: 'sha256',
-    // maxAssertionAgeMs: 2592000000,
-    // authnRequestBinding: 'HTTP-POST',
-    //logoutUrl: 'http://194.71.24.30/sso',
     logoutCallbackUrl: SAML_LOGOUT_CALLBACK_URL,
   },
   async function (profile: Profile, done: VerifiedCallback) {
@@ -91,9 +80,9 @@ const samlStrategy = new Strategy(
         message: 'Missing SAML profile',
       });
     }
-    const { givenName, surname, username, citizenIdentifier } = profile;
+    const { givenName, surname, username, groups } = profile;
 
-    if (!givenName || !surname || !username || !citizenIdentifier) {
+    if (!givenName || !surname || !username || !groups) {
       return done({
         name: 'SAML_MISSING_ATTRIBUTES',
         message: 'Missing profile attributes',
@@ -101,64 +90,68 @@ const samlStrategy = new Strategy(
     }
 
     try {
-      //const personNumber = profile.citizenIdentifier;
-      /*
-	
-Response body
-Download
-[
-  {
-    "contractId": 3,
-    "personId": "62991f6f-f72f-4c35-bb14-4e8a01f933d4",
-    "classified": "N",
-    "givenname": "Mandus",
-    "lastname": "Lindström",
-    "userId": "81b5eddb-64ce-4e70-a1d4-471383ca2a74",
-    "loginname": "utfmanlin",
-    "emailAddress": "",
-    "restrictedMobile": "0735319098",
-    "title": "Utförare (LOV)",
-    "hireDate": "2023-10-27",
-    "retireDate": "2024-04-27",
-    "ordererId": "ef01149c-dd57-409e-a9bf-856cc0dbd3f8",
-    "orgId": 11275,
-    "orgName": "LOV Testbolag 1",
-    "isEmergencyClosed": false
-  }
-]*/
-      const metaUser = await apiService.get<any>({ url: `/metaadmin/1.0/contractor/loginname/utfmanlin` });
-      // ${username}` });
+      const userGroups = groups ? groups.split(',') : [];
+      const isSuperAdmin = userGroups.includes('SG_Appl_LOV_InternalAdmin');
+      const isAdmin = userGroups.includes('SG_Appl_LOV_ExternalAdmin');
+
+      if (!isAdmin && !isSuperAdmin) {
+        return done({
+          name: 'MISSING_SG_GROUPS',
+          message: 'Not allowed to enter',
+        });
+      }
+
+      if (isSuperAdmin) {
+        const employee = await apiService.get<any>({ url: `employee/1.0/portalpersondata/personal/${username}` });
+        const { personid: personId } = employee.data;
+
+        const findUser: User = {
+          guid: personId,
+          name: `${givenName} ${surname}`,
+          givenName: givenName,
+          surname: surname,
+          username: username,
+          personId,
+          isSuperAdmin,
+          isAdmin,
+        };
+        return done(null, findUser);
+      }
+
+      const metaUser = await apiService.get<Contractor[]>({ url: `/metaadmin/1.0/contractor/loginname/${username}` });
+
       if (metaUser.data.length <= 0) {
         return done({
           name: 'MISSING_IN_METAADMIN',
           message: 'Missing user in meta admin',
         });
       }
-      // console.log('metaUser', metaUser);
 
       const { personId, orgId, orgName, retireDate } = metaUser.data[0];
-      // utfmanlinz
-      /*const citizenResult = await apiService.get<any>({ url: `citizen/2.0/${personNumber}/guid` });
-      const { data: personId } = citizenResult;*/
 
-      if (!personId) {
-        return done({
-          name: 'SAML_CITIZEN_FAILED',
-          message: 'Failed to fetch user from Citizen API',
-        });
-      }
+      const contracts = metaUser.data?.map(contract => ({
+        personId: contract.personId,
+        contractId: contract.contractId,
+        orgId: contract.orgId,
+        orgName: contract.orgName,
+        isEmergencyClosed: contract.isEmergencyClosed,
+        hireDate: contract.hireDate,
+        retireDate: contract.retireDate,
+      }));
 
-      const findUser = {
+      const findUser: User = {
         guid: personId,
         name: `${givenName} ${surname}`,
         givenName: givenName,
         surname: surname,
         username: username,
+        isSuperAdmin,
+        isAdmin,
         orgId,
         orgName,
         retireDate,
-        citizenIdentifier,
-        isSuperAdmin: true, // or false
+        personId,
+        contracts,
       };
 
       done(null, findUser);
