@@ -22,7 +22,7 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 });
 
 module.exports = withBundleAnalyzer({
-  output: 'standalone',
+  //output: 'standalone',
   i18n: {
     locales: ['sv'],
     defaultLocale: 'sv',

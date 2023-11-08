@@ -1,4 +1,3 @@
-import type { AppProps /*, AppContext */ } from 'next/app';
 import { defaultTheme, GuiProvider, extendTheme } from '@sk-web-gui/react';
 import { useMemo, useState } from 'react';
 import '@styles/tailwind.scss';
@@ -30,7 +29,7 @@ dayjs.updateLocale('sv', {
   monthsShort: ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec'],
 });
 
-function MyApp({ Component, pageProps }: AppProps) {
+function MyApp({ Component, pageProps }) {
   const [colorScheme] = useState('light');
 
   const theme = useMemo(
