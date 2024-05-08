@@ -1,0 +1,43 @@
+// NOTE: sticky footer
+html,
+body,
+#__next,
+.full-page-layout {
+  width: 100%;
+  max-width: 100vw;
+  min-height: 100vh;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+#__next,
+.full-page-layout {
+  display: flex;
+  flex-direction: column;
+}
+
+.main-container {
+  flex: 1 0 auto;
+}
+
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: #000;
+  color: white;
+  padding: 8px;
+  z-index: 100;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+@layer components {
+  .custom-scroll {
+    @apply scrollbar scrollbar-h-5 scrollbar-thumb-gray-300 scrollbar-track-gray-100 scrollbar-thumb-rounded-full scrollbar-track-rounded-full;
+  }
+}
