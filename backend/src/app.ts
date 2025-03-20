@@ -12,7 +12,7 @@ import helmet from 'helmet';
 import hpp from 'hpp';
 import morgan from 'morgan';
 import passport from 'passport';
-import { Strategy, VerifiedCallback } from 'passport-saml';
+import { Strategy, VerifiedCallback } from '@node-saml/passport-saml';
 import bodyParser from 'body-parser';
 import { useExpressServer, getMetadataArgsStorage } from 'routing-controllers';
 import { routingControllersToSpec } from 'routing-controllers-openapi';
@@ -68,10 +68,12 @@ const samlStrategy = new Strategy(
     entryPoint: SAML_ENTRY_SSO,
     privateKey: SAML_PRIVATE_KEY,
     // Identity Provider's public key
-    cert: SAML_IDP_PUBLIC_CERT,
+    idpCert: SAML_IDP_PUBLIC_CERT,
     issuer: SAML_ISSUER,
     wantAssertionsSigned: false,
     logoutCallbackUrl: SAML_LOGOUT_CALLBACK_URL,
+    wantAuthnResponseSigned: false,
+    audience: false,
   },
   async function (profile: Profile, done: VerifiedCallback) {
     if (!profile) {
@@ -80,7 +82,8 @@ const samlStrategy = new Strategy(
         message: 'Missing SAML profile',
       });
     }
-    const { givenName, surname, username, groups } = profile;
+    const { surname, uid: username, groups } = profile;
+    const givenName = profile.givenname ?? profile.givenName;
 
     if (!givenName || !surname || !username || !groups) {
       return done({
@@ -90,9 +93,9 @@ const samlStrategy = new Strategy(
     }
 
     try {
-      const userGroups = groups ? groups.split(',') : [];
-      const isSuperAdmin = userGroups.includes('SG_Appl_LOV_InternalAdmin');
-      const isAdmin = userGroups.includes('SG_Appl_LOV_ExternalAdmin');
+      const userGroups = groups ? groups.toLowerCase().split(',') : [];
+      const isSuperAdmin = userGroups.includes('SG_Appl_LOV_InternalAdmin'.toLowerCase());
+      const isAdmin = userGroups.includes('SG_Appl_LOV_ExternalAdmin'.toLowerCase());
 
       if (!isAdmin && !isSuperAdmin) {
         return done({
@@ -161,6 +164,9 @@ const samlStrategy = new Strategy(
       }
       done(err);
     }
+  },
+  async function (profile: Profile, done: VerifiedCallback) {
+    return done(null, {});
   },
 );
 
