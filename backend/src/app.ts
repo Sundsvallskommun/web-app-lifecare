@@ -80,7 +80,9 @@ const samlStrategy = new Strategy(
         message: 'Missing SAML profile',
       });
     }
-    const { givenName, surname, username, groups } = profile;
+    const { givenname: givenName, surname, uid: username, groups } = profile;
+
+    console.log('profile', profile);
 
     if (!givenName || !surname || !username || !groups) {
       return done({
@@ -90,9 +92,9 @@ const samlStrategy = new Strategy(
     }
 
     try {
-      const userGroups = groups ? groups.split(',') : [];
-      const isSuperAdmin = userGroups.includes('SG_Appl_LOV_InternalAdmin');
-      const isAdmin = userGroups.includes('SG_Appl_LOV_ExternalAdmin');
+      const userGroups = groups ? groups.toLowerCase().split(',') : [];
+      const isSuperAdmin = userGroups.includes('SG_Appl_LOV_InternalAdmin'.toLowerCase());
+      const isAdmin = userGroups.includes('SG_Appl_LOV_ExternalAdmin'.toLowerCase());
 
       if (!isAdmin && !isSuperAdmin) {
         return done({

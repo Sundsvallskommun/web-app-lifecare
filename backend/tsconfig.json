@@ -37,9 +37,6 @@
     "src/**/*.ts",
     "src/**/*.json",
     ".env",
-    "../frontend/src/services/contractor.service.ts",
-    "../frontend/src/services/create-new-contractor.service.ts",
-    "../frontend/src/services/organization.service.ts"
   ],
   "exclude": ["node_modules", "src/http", "src/logs", "src/tests"]
 }
