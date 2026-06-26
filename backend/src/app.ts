@@ -37,6 +37,7 @@ import {
   SAML_PUBLIC_KEY,
   BASE_URL_PREFIX,
   SESSION_MEMORY,
+  MUNICIPALITY_ID,
 } from '@config';
 import errorMiddleware from '@middlewares/error.middleware';
 import { logger, stream } from '@utils/logger';
@@ -45,6 +46,7 @@ import ApiService from '@/services/api.service';
 import { HttpException } from './exceptions/HttpException';
 import { join } from 'path';
 import { Contractor, User } from './interfaces/users.interface';
+import { getApiBase } from '@/config/api-config';
 
 const SessionStoreCreate = SESSION_MEMORY ? createMemoryStore(session) : createFileStore(session);
 const sessionTTL = 4 * 24 * 60 * 60;
@@ -72,6 +74,7 @@ const samlStrategy = new Strategy(
     issuer: SAML_ISSUER,
     wantAssertionsSigned: false,
     logoutCallbackUrl: SAML_LOGOUT_CALLBACK_URL,
+    acceptedClockSkewMs: -1
   },
   async function (profile: Profile, done: VerifiedCallback) {
     if (!profile) {
@@ -102,7 +105,7 @@ const samlStrategy = new Strategy(
       }
 
       if (isSuperAdmin) {
-        const employee = await apiService.get<any>({ url: `employee/1.0/portalpersondata/personal/${username}` });
+        const employee = await apiService.get<any>({ url: `${getApiBase('employee')}/${MUNICIPALITY_ID}/portalpersondata/personal/${username}` });
         const { personid: personId } = employee.data;
 
         const findUser: User = {
@@ -118,7 +121,7 @@ const samlStrategy = new Strategy(
         return done(null, findUser);
       }
 
-      const metaUser = await apiService.get<Contractor[]>({ url: `/metaadmin/1.0/contractor/loginname/${username}` });
+      const metaUser = await apiService.get<Contractor[]>({ url: `/${getApiBase('metaadmin')}/contractor/loginname/${username}` });
 
       if (metaUser.data.length <= 0) {
         return done({
