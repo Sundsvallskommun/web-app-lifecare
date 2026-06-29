@@ -5,6 +5,8 @@ import authMiddleware from '@/middlewares/auth.middleware';
 import { HttpException } from '@/exceptions/HttpException';
 import { RequestWithUser } from '@/interfaces/auth.interface';
 import { IsString } from 'class-validator';
+import { getApiBase } from '@/config/api-config';
+import { MUNICIPALITY_ID } from '@config';
 
 interface ResponseData<T> {
   data: T;
@@ -32,7 +34,7 @@ export class CitizenController {
   async getCitizen(@Req() req: RequestWithUser, @Body() body: citizenDTO): Promise<ResponseData<any>> {
     try {
       const { SocialSecurityNumber } = body;
-      const urlForGuid = `/citizen/2.0/${SocialSecurityNumber}/guid`;
+      const urlForGuid = `/${getApiBase('citizen')}/${MUNICIPALITY_ID}/${SocialSecurityNumber}/guid`;
       const resGuid = await this.apiService.get<any>({ url: urlForGuid });
 
       if (!resGuid || !resGuid.data) {
@@ -41,7 +43,7 @@ export class CitizenController {
 
       const personId = resGuid.data;
 
-      const url = `/citizen/2.0/${personId}`;
+      const url = `/${getApiBase('citizen')}/${MUNICIPALITY_ID}/${personId}`;
       const res = await this.apiService.get<any>({ url });
       const { givenname, lastname } = res.data;
 
@@ -63,7 +65,7 @@ export class CitizenController {
   async getCitizenSocialSecurityNumber(@Req() req: RequestWithUser, @Body() body: citizenSocialSecurityNumberDTO): Promise<ResponseData<any>> {
     try {
       const { personId } = body;
-      const url = `/citizen/2.0/${personId}/personnumber`;
+      const url = `${getApiBase('citizen')}/${MUNICIPALITY_ID}/${personId}/personnumber`;
       const res = await this.apiService.get<any>({ url });
 
       return { data: res.data, message: 'success', status: 200 };
