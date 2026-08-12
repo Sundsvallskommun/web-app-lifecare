@@ -5,10 +5,9 @@ import { deleteContractor } from '@services/contractor.service';
 import { useUserStore } from '@services/user-service/user-service';
 
 import {
-  // Avatar,
+  AutoTable,
+  AutoTableHeader,
   Button,
-  DataTable,
-  DataTableHeader,
   Divider,
   Icon,
   SearchField,
@@ -16,11 +15,11 @@ import {
   useSnackbar,
 } from '@sk-web-gui/react';
 import { extractContractorArray } from '@utils/extractContractorArray';
-// import { getInitials } from '@utils/get-initials';
 import { isRetireDateSoonEnding } from '@utils/is-retire-date';
 import { Fragment, useState } from 'react';
 import useContractorStore from 'src/store/useContractorStore.store';
 import { shallow } from 'zustand/shallow';
+import { AlertCircle, Pencil, Trash } from 'lucide-react';
 
 interface TableProps {
   contractorData: ContractorDataFormat;
@@ -81,10 +80,6 @@ export const Table: React.FunctionComponent<TableProps> = ({ contractorData }) =
     setSearchQuery(e.target.value);
   };
 
-  const onSearchCloseHandler = () => {
-    setSearchQuery('');
-  };
-
   const processedUsers: ContractorWithName[] = rawData.map((contractor) => ({
     name: `${contractor.givenname} ${contractor.lastname}`,
     ...contractor,
@@ -103,7 +98,7 @@ export const Table: React.FunctionComponent<TableProps> = ({ contractorData }) =
     });
   });
 
-  const headers: DataTableHeader[] = [
+  const headers: AutoTableHeader[] = [
     {
       renderColumn: (
         value: string
@@ -149,7 +144,7 @@ export const Table: React.FunctionComponent<TableProps> = ({ contractorData }) =
       renderColumn: (value, user) => (
         <div className="flex items-center">
           <span>{user.retireDate}</span>
-          {isRetireDateSoonEnding(user.retireDate) && <Icon name="alert-circle" color="warning" className="ml-8" />}
+          {isRetireDateSoonEnding(user.retireDate) && <Icon icon={<AlertCircle />} color="warning" className="ml-8" />}
         </div>
       ),
       label: 'Slutdatum',
@@ -160,18 +155,18 @@ export const Table: React.FunctionComponent<TableProps> = ({ contractorData }) =
       renderColumn: (value, user) => (
         <Fragment>
           <Icon
-            name="trash"
+            icon={<Trash />}
             aria-label="Ta bort användare"
             color="error"
             className="cursor-pointer"
-            onClick={() => handleDelete(user)}
+            onClick={() => handleDelete(user as Contractor)}
           />
           <Icon
-            name="pencil"
+            icon={<Pencil />}
             aria-label="Redigera användare"
             color="vattjom"
             className="ml-8 cursor-pointer"
-            onClick={() => handleEdit(user)}
+            onClick={() => handleEdit(user as Contractor)}
           />
         </Fragment>
       ),
@@ -203,7 +198,6 @@ export const Table: React.FunctionComponent<TableProps> = ({ contractorData }) =
           id="searchInput"
           placeholder="Sök i listan"
           value={searchQuery}
-          onClose={onSearchCloseHandler}
           onChange={onSearchChangeHandler}
           className="w-1/2"
           autoComplete="off"
@@ -217,11 +211,10 @@ export const Table: React.FunctionComponent<TableProps> = ({ contractorData }) =
         Användare <span>({rawData.length})</span>
       </h2>
       <Divider className="mb-16" aria-hidden="true" />
-      <DataTable
-        variant="datatable"
+      <AutoTable
         background={true}
-        data={filteredUsers}
-        headers={headers}
+        autodata={filteredUsers}
+        autoheaders={headers}
         pageSize={filteredUsers.length > 10 ? 10 : 10}
         aria-label="Användar informations columner"
       />

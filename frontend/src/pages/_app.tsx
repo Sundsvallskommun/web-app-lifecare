@@ -43,7 +43,7 @@ function MyApp({ Component, pageProps }) {
   );
 
   return (
-    <GuiProvider theme={theme} colorScheme={colorScheme}>
+    <GuiProvider theme={theme}>
       <ModalProvider>
         <AppWrapper>
           <LoginGuard>

@@ -4,7 +4,7 @@ module.exports = {
     './src/pages/**/*.{js,ts,jsx,tsx}',
     './src/components/**/*.{js,ts,jsx,tsx}',
     './src/layouts/**/*.{js,ts,jsx,tsx}',
-    './node_modules/@sk-web-gui/*/dist/**/*.js',
+    './node_modules/@sk-web-gui/*/dist/**/*.{js,mjs}',
   ],
   darkMode: 'class', // or 'media' or 'class'
   theme: {
@@ -17,6 +17,7 @@ module.exports = {
   plugins: [
     //require('@tailwindcss/typography'),
     require('@tailwindcss/forms'),
+    require('@tailwindcss/container-queries'),
     require('@sk-web-gui/core')({
       colors: [],
       cssBase: true,

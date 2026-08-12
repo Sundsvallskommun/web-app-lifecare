@@ -35,6 +35,9 @@ module.exports = withBundleAnalyzer({
   sassOptions: {
     prependData: `$basePath: '${process.env.BASE_PATH}';`,
   },
+  experimental: {
+    optimizePackageImports: ['lucide-react', '@sk-web-gui/react'],
+  },
   async rewrites() {
     return [{ source: '/napi/:path*', destination: '/api/:path*' }];
   },
