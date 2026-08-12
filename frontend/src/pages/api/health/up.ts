@@ -19,7 +19,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const health = await apiService.get('health/up').then((res) => res.data);
 
     res.status(200).send(health);
-  } catch (error) {
+  } catch {
     res.status(500).send({
       status: 'ERROR!',
     });

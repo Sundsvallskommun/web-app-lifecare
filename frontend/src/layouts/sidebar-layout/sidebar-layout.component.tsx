@@ -13,7 +13,9 @@ export default function SidebarLayout({ title, children }: ISidebarLayout) {
 
   const setInitialFocus = () => {
     setTimeout(() => {
-      initialFocus.current && initialFocus.current.focus();
+      if (initialFocus.current) {
+        initialFocus.current.focus();
+      }
     });
   };
 

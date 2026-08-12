@@ -6,10 +6,12 @@ import { Button } from '@sk-web-gui/react';
 export default function Start() {
   const router = useRouter();
 
-  const initalFocus = useRef(null);
-  const setInitalFocus = () => {
+  const initialFocus = useRef(null);
+  const setInitialFocus = () => {
     setTimeout(() => {
-      initalFocus.current && initalFocus.current.focus();
+      if (initialFocus.current) {
+        initialFocus.current.focus();
+      }
     });
   };
 
@@ -19,7 +21,7 @@ export default function Start() {
   };
 
   useEffect(() => {
-    setInitalFocus();
+    setInitialFocus();
   }, []);
 
   return (
@@ -37,7 +39,7 @@ export default function Start() {
                 variant="primary"
                 color="vattjom"
                 onClick={() => onLogin()}
-                ref={initalFocus}
+                ref={initialFocus}
                 data-cy="loginButton"
               >
                 Logga in

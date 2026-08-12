@@ -18,7 +18,9 @@ export default function DefaultLayout({ title, children }) {
 
   const setInitialFocus = () => {
     setTimeout(() => {
-      initialFocus.current && initialFocus.current.focus();
+      if (initialFocus.current) {
+        initialFocus.current.focus();
+      }
     });
   };
 
