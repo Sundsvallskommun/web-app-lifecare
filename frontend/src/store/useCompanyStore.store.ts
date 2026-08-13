@@ -1,6 +1,6 @@
 import { Organization } from '@interfaces/organization';
 import { getOrganizationByTreeLevelAndCompanyId } from '@services/organization.service';
-import { create } from 'zustand';
+import { createWithEqualityFn } from 'zustand/traditional';
 
 interface State {
   companyList: Organization[];
@@ -15,7 +15,7 @@ const initialState: State = {
   isLoading: false,
 };
 
-const useCompanyStore = create<State & Actions>((set) => ({
+const useCompanyStore = createWithEqualityFn<State & Actions>((set) => ({
   ...initialState,
 
   fetchCompanies: async () => {
