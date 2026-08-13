@@ -357,7 +357,7 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, trig
             onChange={handleEmailChange}
             id="emailInput"
             required
-            autocomplete="email"
+            autoComplete="email"
           />
         </FormLabel>
 
@@ -375,7 +375,7 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, trig
             onChange={handlePhoneChange}
             id="phoneInput"
             required
-            autocomplete="tel"
+            autoComplete="tel"
           />
         </FormLabel>
 

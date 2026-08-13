@@ -26,10 +26,8 @@ export default function SidebarLayout({ title, children }: ISidebarLayout) {
         <meta name="description" content="Masterdata" />
       </Head>
 
-      <NextLink legacyBehavior={true} href="#content" passHref>
-        <a onClick={setInitialFocus} accessKey="s" className="next-link-a">
-          Hoppa till innehåll
-        </a>
+      <NextLink href="#content" onClick={setInitialFocus} accessKey="s" className="next-link-a">
+        Hoppa till innehåll
       </NextLink>
 
       <Header

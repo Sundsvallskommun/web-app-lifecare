@@ -35,10 +35,8 @@ export default function DefaultLayout({ title, children }) {
         Hoppa till huvudinnehåll
       </a>
 
-      <NextLink legacyBehavior={true} href="#content" passHref>
-        <a onClick={setInitialFocus} className="next-link-a">
-          Hoppa till innehåll
-        </a>
+      <NextLink href="#content" onClick={setInitialFocus} className="next-link-a">
+        Hoppa till innehåll
       </NextLink>
 
       <Header

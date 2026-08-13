@@ -27,7 +27,7 @@ export default withBundleAnalyzer({
     defaultLocale: 'sv',
   },
   images: {
-    domains: [process.env.DOMAIN_NAME],
+    remotePatterns: process.env.DOMAIN_NAME ? [{ protocol: 'https', hostname: process.env.DOMAIN_NAME }] : [],
     formats: ['image/avif', 'image/webp'],
   },
   basePath: process.env.BASE_PATH,
