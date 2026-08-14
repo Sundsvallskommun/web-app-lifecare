@@ -6,9 +6,11 @@ import NextLink from 'next/link';
 import { useUserStore } from '@services/user-service/user-service';
 import { getInitials } from '@utils/get-initials';
 import { ModalContext } from '@contexts/modalContext';
+import { useRouter } from 'next/router';
 
 export default function DefaultLayout({ title, children }) {
   const initialFocus = useRef(null);
+  const router = useRouter();
 
   const { isModalOpen } = useContext(ModalContext);
 
@@ -39,10 +41,7 @@ export default function DefaultLayout({ title, children }) {
         Hoppa till innehåll
       </NextLink>
 
-      <Header
-        title={`Externa leverantörer`}
-        LogoLinkWrapperComponent={<NextLink legacyBehavior={true} href={'/'} passHref />}
-      >
+      <Header title={`Externa leverantörer`} logoLinkOnClick={() => router.push('/')}>
         <Avatar imageAlt="Avatar" imageUrl="" initials={userInitials} />
       </Header>
 
