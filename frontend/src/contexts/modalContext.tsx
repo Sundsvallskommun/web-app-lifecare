@@ -2,7 +2,7 @@ import React, { useState, createContext, ReactNode } from 'react';
 
 interface ModalContextType {
   isModalOpen: boolean;
-  setModalOpen: (isOpen: boolean) => void;
+  setModalOpen: (_isOpen: boolean) => void;
 }
 
 interface ModalProviderProps {

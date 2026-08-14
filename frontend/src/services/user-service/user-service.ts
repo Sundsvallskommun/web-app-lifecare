@@ -6,7 +6,7 @@ import { __DEV__ } from '@sk-web-gui/react';
 import { emptyUser } from './defaults';
 import { ServiceResponse } from '@interfaces/service';
 
-const handleSetUserResponse: (res: ApiResponse<User>) => User = (res) => ({
+const handleSetUserResponse: (_res: ApiResponse<User>) => User = (res) => ({
   name: res.data.name,
   username: res.data.username,
   isSuperAdmin: res.data.isSuperAdmin,
@@ -31,7 +31,7 @@ interface State {
   user: User;
 }
 interface Actions {
-  setUser: (user: User) => void;
+  setUser: (_user: User) => void;
   getMe: () => Promise<ServiceResponse<User>>;
   reset: () => void;
 }

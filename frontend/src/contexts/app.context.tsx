@@ -3,7 +3,7 @@ import { createContext, useContext, useState } from 'react';
 
 export interface AppContextInterface {
   isCookieConsentOpen: boolean;
-  setIsCookieConsentOpen: (isOpen: boolean) => void;
+  setIsCookieConsentOpen: (_isOpen: boolean) => void;
 
   setDefaults: () => void;
 }
