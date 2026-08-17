@@ -13,7 +13,6 @@ import hpp from 'hpp';
 import morgan from 'morgan';
 import passport from 'passport';
 import { Strategy, VerifiedCallback } from '@node-saml/passport-saml';
-import bodyParser from 'body-parser';
 import { useExpressServer, getMetadataArgsStorage } from 'routing-controllers';
 import { routingControllersToSpec } from 'routing-controllers-openapi';
 import swaggerUi from 'swagger-ui-express';
@@ -254,7 +253,7 @@ class App {
       res.status(200).send(metadata);
     });
 
-    this.app.get(`${BASE_URL_PREFIX}/saml/logout`, bodyParser.urlencoded({ extended: false }), (req, res, next) => {
+    this.app.get(`${BASE_URL_PREFIX}/saml/logout`, (req, res, next) => {
       samlStrategy.logout(req as any, () => {
         req.logout(err => {
           if (err) {
@@ -266,7 +265,7 @@ class App {
       });
     });
 
-    this.app.get(`${BASE_URL_PREFIX}/saml/logout/callback`, bodyParser.urlencoded({ extended: false }), (req, res, next) => {
+    this.app.get(`${BASE_URL_PREFIX}/saml/logout/callback`, (req, res, next) => {
       // FIXME: is this enough or do we need to do something more?
       req.logout(err => {
         if (err) {
@@ -279,7 +278,6 @@ class App {
 
     this.app.post(
       `${BASE_URL_PREFIX}/saml/login/callback`,
-      bodyParser.urlencoded({ extended: false }),
       (req, res, next) => {
         passport.authenticate('saml', {
           failureRedirect: SAML_FAILURE_REDIRECT,
