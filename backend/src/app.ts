@@ -236,7 +236,7 @@ class App {
       `${BASE_URL_PREFIX}/saml/login`,
       (req, _res, next) => {
         if (req.session.returnTo) {
-          req.query.RelayState = req.session.returnTo;
+          req.url = `${req.path}?RelayState=${encodeURIComponent(req.session.returnTo)}`;
         }
         next();
       },
@@ -315,7 +315,7 @@ class App {
     const storage = getMetadataArgsStorage();
     const spec = routingControllersToSpec(storage, routingControllersOptions, {
       components: {
-        schemas: schemas as { [schema: string]: unknown },
+        schemas,
         securitySchemes: {
           basicAuth: {
             scheme: 'basic',
