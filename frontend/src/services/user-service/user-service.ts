@@ -6,7 +6,7 @@ import { __DEV__ } from '@sk-web-gui/react';
 import { emptyUser } from './defaults';
 import { ServiceResponse } from '@interfaces/service';
 
-const handleSetUserResponse: (_res: ApiResponse<User>) => User = (res) => ({
+const handleSetUserResponse: (res: ApiResponse<User>) => User = (res) => ({
   name: res.data.name,
   username: res.data.username,
   isSuperAdmin: res.data.isSuperAdmin,
@@ -31,7 +31,7 @@ interface State {
   user: User;
 }
 interface Actions {
-  setUser: (_user: User) => void;
+  setUser: (user: User) => void;
   getMe: () => Promise<ServiceResponse<User>>;
   reset: () => void;
 }
@@ -48,11 +48,11 @@ export const useUserStore = createWithEqualityFn<State & Actions>()(
       getMe: async () => {
         let user = get().user;
         const res = await getMe();
-        if (!res.error) {
+        if (!res.error && res.data) {
           user = res.data;
           set(() => ({ user }));
         }
-        return { data: user };
+        return res.error ? res : { data: user };
       },
       reset: () => {
         set(initialState);

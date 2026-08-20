@@ -4,7 +4,7 @@ import { createWithEqualityFn } from 'zustand/traditional';
 
 interface ContractorStore {
   contractorData: BasicContractorData | null;
-  setContractorData: (_data: BasicContractorData) => void;
+  setContractorData: (data: BasicContractorData) => void;
   fetchContractorData: () => Promise<void>;
 }
 

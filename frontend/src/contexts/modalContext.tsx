@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, createContext, ReactNode } from 'react';
 
 interface ModalContextType {

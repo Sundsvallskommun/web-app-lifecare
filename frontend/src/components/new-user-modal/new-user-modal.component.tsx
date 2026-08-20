@@ -3,7 +3,7 @@ import { NewUserModalProps } from '@interfaces/user';
 import { lookUpCitizen, newContractor } from '@services/contractor.service';
 import { Button, Combobox, Divider, FormLabel, Input, Modal, Select, useSnackbar } from '@sk-web-gui/react';
 import { luhnCheck, validateEmail, validatePhone } from '@utils/validation';
-import { ChangeEvent, useEffect, useRef, useState } from 'react';
+import React, { ChangeEvent, useEffect, useRef, useState } from 'react';
 import useCompanyStore from 'src/store/useCompanyStore.store';
 import useContractorStore from 'src/store/useContractorStore.store';
 
@@ -17,7 +17,7 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, trig
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [monthsToAdd, setMonthsToAdd] = useState(0);
-  const [selectedCompanyIds, setSelectedCompanyIds] = useState([]);
+  const [selectedCompanyIds, setSelectedCompanyIds] = useState<string[]>([]);
 
   // Validation states
   const [isSSNValid, setIsSSNValid] = useState(false);
@@ -64,12 +64,12 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, trig
     fetchCompanies();
   }, [fetchCompanies]);
 
-  const modalRef = useRef(null);
+  const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (show) {
       // Focus the modal when it opens
-      modalRef.current.focus();
+      modalRef.current?.focus();
     } else if (triggerElement) {
       // Return focus to the trigger element when the modal closes
       triggerElement.focus();
@@ -223,14 +223,15 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, trig
     );
   };
 
-  const handleKeyDown = (event) => {
+  const handleKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === 'Escape') {
       onClose();
     }
     if (event.key === 'Tab') {
-      const focusableModalElements = modalRef.current.querySelectorAll(
+      const focusableModalElements = modalRef.current?.querySelectorAll<HTMLElement>(
         'a[href], button:not([disabled]), textarea, input, select'
       );
+      if (!focusableModalElements || focusableModalElements.length === 0) return;
       const firstElement = focusableModalElements[0];
       const lastElement = focusableModalElements[focusableModalElements.length - 1];
 

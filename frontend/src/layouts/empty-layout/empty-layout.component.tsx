@@ -1,12 +1,8 @@
-import Head from 'next/head';
+'use client';
 
-export default function EmptyLayout({ title, children }) {
+export default function EmptyLayout({ children }) {
   return (
     <div className="EmptyLayout">
-      <Head>
-        <title>{title}</title>
-      </Head>
-
       <div className="bg-gray-lighter min-h-screen">{children}</div>
     </div>
   );
