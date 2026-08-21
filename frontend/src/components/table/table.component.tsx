@@ -172,6 +172,7 @@ export const Table: React.FunctionComponent<TableProps> = ({ contractorData }) =
       ),
       isShown: true,
       isColumnSortable: false,
+      sticky: true,
     },
   ];
 
@@ -193,7 +194,7 @@ export const Table: React.FunctionComponent<TableProps> = ({ contractorData }) =
   };
 
   return (
-    <div>
+    <div className="w-full">
       <div className="flex justify-between my-8">
         <label htmlFor="searchInput" className="sr-only">
           Sök i listan
@@ -222,6 +223,8 @@ export const Table: React.FunctionComponent<TableProps> = ({ contractorData }) =
         autoheaders={headers}
         pageSize={filteredUsers.length > 10 ? 10 : 10}
         aria-label="Användar informations columner"
+        className="table-scroll-x"
+        scrollable="x"
       />
 
       {selectedUser && (

@@ -3,7 +3,7 @@
 export default function EmptyLayout({ children }) {
   return (
     <div className="EmptyLayout">
-      <div className="bg-gray-lighter min-h-screen">{children}</div>
+      <div className="bg-background-200 min-h-screen">{children}</div>
     </div>
   );
 }

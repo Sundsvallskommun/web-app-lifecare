@@ -342,9 +342,9 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, trig
           />
         </FormLabel>
 
-        <span className="font-normal text-sm">Tilltalsnamn används då användarnamnet genereras.</span>
+        <span className="font-normal text-small">Tilltalsnamn används då användarnamnet genereras.</span>
 
-        <FormLabel className="flex justify-between" htmlFor="emailInput">
+        <FormLabel className="flex justify-between pt-8" htmlFor="emailInput">
           <div className="flex items-center">
             E-post
             <abbr className="text-red-600 ml-1 no-underline" title="Obligatoriskt fält">
