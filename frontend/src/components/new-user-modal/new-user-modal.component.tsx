@@ -147,7 +147,6 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, trig
       const citizen = await lookUpCitizen(SSN);
 
       if (citizen.data) {
-        console.log(citizen);
         setPersonId(citizen.data.personId);
         setFirstName(citizen.data.givenname);
         setLastName(citizen.data.lastname);
@@ -411,12 +410,14 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, trig
         </FormLabel>
 
         {companyList.length > 1 && (
-          <FormLabel className="flex justify-between items-center" htmlFor="companySelection">
-            <div className="flex items-center">
-              Företag
-              <abbr className="text-red-600 ml-1 no-underline" title="Obligatoriskt fält">
-                *
-              </abbr>
+          <div className="flex justify-between">
+            <div>
+              <FormLabel className="flex items-center">
+                Företag
+                <abbr className="text-red-600 ml-1 no-underline" title="Obligatoriskt fält">
+                  *
+                </abbr>
+              </FormLabel>
             </div>
 
             <div className="w-4/6">
@@ -429,7 +430,7 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, trig
                 id="companySelection"
                 aria-required="true"
               >
-                <Combobox.Input />
+                <Combobox.Input className="w-full" />
                 <Combobox.List>
                   {companyList?.map((company) => (
                     <Combobox.Option key={company.orgId} value={company.orgId.toString()}>
@@ -441,7 +442,7 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, trig
 
               {companyError && <span className="text-red-600 mt-1 text-xs">{companyError}</span>}
             </div>
-          </FormLabel>
+          </div>
         )}
 
         <div className="flex justify-between w-full gap-10">
