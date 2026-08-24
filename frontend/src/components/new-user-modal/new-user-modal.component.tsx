@@ -1,7 +1,17 @@
 import ValidatedInput from '@components/validated-input/validated-input.component';
 import { NewUserModalProps } from '@interfaces/user';
 import { lookUpCitizen, newContractor } from '@services/contractor.service';
-import { Button, Combobox, Divider, FormLabel, Input, Modal, Select, useSnackbar } from '@sk-web-gui/react';
+import {
+  Button,
+  Combobox,
+  CustomOnChangeEvent,
+  Divider,
+  FormLabel,
+  Input,
+  Modal,
+  Select,
+  useSnackbar,
+} from '@sk-web-gui/react';
 import { luhnCheck, validateEmail, validatePhone } from '@utils/validation';
 import React, { ChangeEvent, useEffect, useRef, useState } from 'react';
 import useCompanyStore from 'src/store/useCompanyStore.store';
@@ -36,6 +46,7 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, trig
 
   const fetchContractorData = useContractorStore((s) => s.fetchContractorData);
   const { companyList, fetchCompanies } = useCompanyStore();
+  const companyIds = companyList.length === 1 ? [companyList[0].orgId.toString()] : selectedCompanyIds;
 
   const snackbar = useSnackbar();
 
@@ -76,14 +87,9 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, trig
     }
   }, [show, modalRef, triggerElement]);
 
-  const handleCompanyChange = (event) => {
-    const newSelection = event.target.value;
-
-    if (selectedCompanyIds.includes(newSelection)) {
-      setSelectedCompanyIds(selectedCompanyIds.filter((id) => id !== newSelection));
-    } else {
-      setSelectedCompanyIds([...selectedCompanyIds, newSelection]);
-    }
+  const handleCompanyChange = (event: CustomOnChangeEvent) => {
+    const value = event.target.value;
+    setSelectedCompanyIds(Array.isArray(value) ? value : [value]);
   };
 
   const handleSave = async () => {
@@ -93,31 +99,25 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, trig
     } else {
       setEndDateError('');
     }
-    if (selectedCompanyIds.length === 0) {
+    if (companyIds.length === 0) {
       setCompanyError('Vänligen välj minst ett företag.');
       return;
     } else {
       setCompanyError('');
     }
 
-    if (selectedCompanyIds.length === 0) {
-      setCompanyError('Vänligen välj minst ett företag.');
-      return;
-    } else {
-      setCompanyError('');
-    }
-
-    for (const orgId of selectedCompanyIds) {
-      console.log('Org ID:', orgId);
-
+    for (const orgId of companyIds) {
       try {
-        await newContractor({
+        const { error } = await newContractor({
           personId: personId,
           ttlMonths: monthsToAdd,
           emailAddress: email,
           orgId: parseInt(orgId, 10),
           restrictedMobile: phone,
         });
+        if (error) {
+          throw error;
+        }
         snackbar({
           message: `Användaren skapades för orgId: ${orgId}.`,
           status: 'success',
@@ -429,6 +429,7 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, trig
                 id="companySelection"
                 aria-required="true"
               >
+                <Combobox.Input />
                 <Combobox.List>
                   {companyList?.map((company) => (
                     <Combobox.Option key={company.orgId} value={company.orgId.toString()}>
@@ -465,7 +466,7 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, trig
               !firstName ||
               !lastName ||
               !isEndDateValid ||
-              selectedCompanyIds.length === 0
+              companyIds.length === 0
             }
             aria-label="Spara ny användare"
           >
