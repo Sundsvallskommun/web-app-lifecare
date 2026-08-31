@@ -13,7 +13,6 @@ import hpp from 'hpp';
 import morgan from 'morgan';
 import passport from 'passport';
 import { Strategy, VerifiedCallback } from '@node-saml/passport-saml';
-import bodyParser from 'body-parser';
 import { useExpressServer, getMetadataArgsStorage } from 'routing-controllers';
 import { routingControllersToSpec } from 'routing-controllers-openapi';
 import swaggerUi from 'swagger-ui-express';
@@ -237,7 +236,7 @@ class App {
       `${BASE_URL_PREFIX}/saml/login`,
       (req, _res, next) => {
         if (req.session.returnTo) {
-          req.query.RelayState = req.session.returnTo;
+          req.url = `${req.path}?RelayState=${encodeURIComponent(req.session.returnTo)}`;
         }
         next();
       },
@@ -254,7 +253,7 @@ class App {
       res.status(200).send(metadata);
     });
 
-    this.app.get(`${BASE_URL_PREFIX}/saml/logout`, bodyParser.urlencoded({ extended: false }), (req, res, next) => {
+    this.app.get(`${BASE_URL_PREFIX}/saml/logout`, (req, res, next) => {
       samlStrategy.logout(req as any, () => {
         req.logout(err => {
           if (err) {
@@ -266,7 +265,7 @@ class App {
       });
     });
 
-    this.app.get(`${BASE_URL_PREFIX}/saml/logout/callback`, bodyParser.urlencoded({ extended: false }), (req, res, next) => {
+    this.app.get(`${BASE_URL_PREFIX}/saml/logout/callback`, (req, res, next) => {
       // FIXME: is this enough or do we need to do something more?
       req.logout(err => {
         if (err) {
@@ -279,7 +278,6 @@ class App {
 
     this.app.post(
       `${BASE_URL_PREFIX}/saml/login/callback`,
-      bodyParser.urlencoded({ extended: false }),
       (req, res, next) => {
         passport.authenticate('saml', {
           failureRedirect: SAML_FAILURE_REDIRECT,
@@ -317,7 +315,7 @@ class App {
     const storage = getMetadataArgsStorage();
     const spec = routingControllersToSpec(storage, routingControllersOptions, {
       components: {
-        schemas: schemas as { [schema: string]: unknown },
+        schemas,
         securitySchemes: {
           basicAuth: {
             scheme: 'basic',
