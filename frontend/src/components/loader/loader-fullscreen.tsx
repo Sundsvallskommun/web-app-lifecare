@@ -1,3 +1,5 @@
+'use client';
+
 import { Spinner } from '@sk-web-gui/react';
 
 export default function LoaderFullScreen() {

@@ -1,5 +1,6 @@
+'use client';
+
 import axios from 'axios';
-import Router from 'next/router';
 import { apiURL } from '@utils/api-url';
 
 export interface Data {
@@ -12,21 +13,20 @@ export interface ApiResponse<T> {
   status: number;
 }
 
-let isRedirectingToLogin = false;
+let navigate: ((path: string) => void) | null = null;
 
-Router.events.on('routeChangeComplete', (route) => {
-  isRedirectingToLogin = false;
-  if (route === '/login') {
-    isRedirectingToLogin = false;
-  }
-});
+export const registerNavigator = (fn: (path: string) => void) => {
+  navigate = fn;
+};
 
 export const handleError = (error) => {
-  if (error.response.status === 401 && Router.pathname !== '/login' && !isRedirectingToLogin) {
-    isRedirectingToLogin = true;
-    Router.push('/login');
+  if (typeof window === 'undefined') {
+    throw error;
   }
-
+  const currentPath = window.location.pathname;
+  if (error.response?.status === 401 && !currentPath.includes('login')) {
+    navigate?.('/login');
+  }
   throw error;
 };
 

@@ -1,9 +1,19 @@
 import ValidatedInput from '@components/validated-input/validated-input.component';
 import { NewUserModalProps } from '@interfaces/user';
 import { lookUpCitizen, newContractor } from '@services/contractor.service';
-import { Button, Combobox, Divider, FormLabel, Input, Modal, Select, useSnackbar } from '@sk-web-gui/react';
+import {
+  Button,
+  Combobox,
+  CustomOnChangeEvent,
+  Divider,
+  FormLabel,
+  Input,
+  Modal,
+  Select,
+  useSnackbar,
+} from '@sk-web-gui/react';
 import { luhnCheck, validateEmail, validatePhone } from '@utils/validation';
-import { ChangeEvent, useEffect, useRef, useState } from 'react';
+import React, { ChangeEvent, useEffect, useRef, useState } from 'react';
 import useCompanyStore from 'src/store/useCompanyStore.store';
 import useContractorStore from 'src/store/useContractorStore.store';
 
@@ -17,7 +27,7 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, trig
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [monthsToAdd, setMonthsToAdd] = useState(0);
-  const [selectedCompanyIds, setSelectedCompanyIds] = useState([]);
+  const [selectedCompanyIds, setSelectedCompanyIds] = useState<string[]>([]);
 
   // Validation states
   const [isSSNValid, setIsSSNValid] = useState(false);
@@ -36,6 +46,7 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, trig
 
   const fetchContractorData = useContractorStore((s) => s.fetchContractorData);
   const { companyList, fetchCompanies } = useCompanyStore();
+  const companyIds = companyList.length === 1 ? [companyList[0].orgId.toString()] : selectedCompanyIds;
 
   const snackbar = useSnackbar();
 
@@ -64,26 +75,21 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, trig
     fetchCompanies();
   }, [fetchCompanies]);
 
-  const modalRef = useRef(null);
+  const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (show) {
       // Focus the modal when it opens
-      modalRef.current.focus();
+      modalRef.current?.focus();
     } else if (triggerElement) {
       // Return focus to the trigger element when the modal closes
       triggerElement.focus();
     }
   }, [show, modalRef, triggerElement]);
 
-  const handleCompanyChange = (event) => {
-    const newSelection = event.target.value;
-
-    if (selectedCompanyIds.includes(newSelection)) {
-      setSelectedCompanyIds(selectedCompanyIds.filter((id) => id !== newSelection));
-    } else {
-      setSelectedCompanyIds([...selectedCompanyIds, newSelection]);
-    }
+  const handleCompanyChange = (event: CustomOnChangeEvent) => {
+    const value = event.target.value;
+    setSelectedCompanyIds(Array.isArray(value) ? value : [value]);
   };
 
   const handleSave = async () => {
@@ -93,31 +99,25 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, trig
     } else {
       setEndDateError('');
     }
-    if (selectedCompanyIds.length === 0) {
+    if (companyIds.length === 0) {
       setCompanyError('Vänligen välj minst ett företag.');
       return;
     } else {
       setCompanyError('');
     }
 
-    if (selectedCompanyIds.length === 0) {
-      setCompanyError('Vänligen välj minst ett företag.');
-      return;
-    } else {
-      setCompanyError('');
-    }
-
-    for (const orgId of selectedCompanyIds) {
-      console.log('Org ID:', orgId);
-
+    for (const orgId of companyIds) {
       try {
-        await newContractor({
+        const { error } = await newContractor({
           personId: personId,
           ttlMonths: monthsToAdd,
           emailAddress: email,
           orgId: parseInt(orgId, 10),
           restrictedMobile: phone,
         });
+        if (error) {
+          throw error;
+        }
         snackbar({
           message: `Användaren skapades för orgId: ${orgId}.`,
           status: 'success',
@@ -147,7 +147,6 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, trig
       const citizen = await lookUpCitizen(SSN);
 
       if (citizen.data) {
-        console.log(citizen);
         setPersonId(citizen.data.personId);
         setFirstName(citizen.data.givenname);
         setLastName(citizen.data.lastname);
@@ -223,14 +222,15 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, trig
     );
   };
 
-  const handleKeyDown = (event) => {
+  const handleKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === 'Escape') {
       onClose();
     }
     if (event.key === 'Tab') {
-      const focusableModalElements = modalRef.current.querySelectorAll(
+      const focusableModalElements = modalRef.current?.querySelectorAll<HTMLElement>(
         'a[href], button:not([disabled]), textarea, input, select'
       );
+      if (!focusableModalElements || focusableModalElements.length === 0) return;
       const firstElement = focusableModalElements[0];
       const lastElement = focusableModalElements[focusableModalElements.length - 1];
 
@@ -341,9 +341,9 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, trig
           />
         </FormLabel>
 
-        <span className="font-normal text-sm">Tilltalsnamn används då användarnamnet genereras.</span>
+        <span className="font-normal text-small">Tilltalsnamn används då användarnamnet genereras.</span>
 
-        <FormLabel className="flex justify-between" htmlFor="emailInput">
+        <FormLabel className="flex justify-between pt-8" htmlFor="emailInput">
           <div className="flex items-center">
             E-post
             <abbr className="text-red-600 ml-1 no-underline" title="Obligatoriskt fält">
@@ -410,12 +410,14 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, trig
         </FormLabel>
 
         {companyList.length > 1 && (
-          <FormLabel className="flex justify-between items-center" htmlFor="companySelection">
-            <div className="flex items-center">
-              Företag
-              <abbr className="text-red-600 ml-1 no-underline" title="Obligatoriskt fält">
-                *
-              </abbr>
+          <div className="flex justify-between">
+            <div>
+              <FormLabel className="flex items-center">
+                Företag
+                <abbr className="text-red-600 ml-1 no-underline" title="Obligatoriskt fält">
+                  *
+                </abbr>
+              </FormLabel>
             </div>
 
             <div className="w-4/6">
@@ -428,6 +430,7 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, trig
                 id="companySelection"
                 aria-required="true"
               >
+                <Combobox.Input className="w-full" />
                 <Combobox.List>
                   {companyList?.map((company) => (
                     <Combobox.Option key={company.orgId} value={company.orgId.toString()}>
@@ -439,7 +442,7 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, trig
 
               {companyError && <span className="text-red-600 mt-1 text-xs">{companyError}</span>}
             </div>
-          </FormLabel>
+          </div>
         )}
 
         <div className="flex justify-between w-full gap-10">
@@ -464,7 +467,7 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, trig
               !firstName ||
               !lastName ||
               !isEndDateValid ||
-              selectedCompanyIds.length === 0
+              companyIds.length === 0
             }
             aria-label="Spara ny användare"
           >

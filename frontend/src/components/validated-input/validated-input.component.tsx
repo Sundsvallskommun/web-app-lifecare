@@ -2,7 +2,7 @@ import { Input } from '@sk-web-gui/react';
 import React, { useEffect, useRef } from 'react';
 
 const ValidatedInput = ({ value, error, onChange, type = 'text', ...otherProps }) => {
-  const inputRef = useRef(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (error && inputRef.current) {
@@ -10,7 +10,7 @@ const ValidatedInput = ({ value, error, onChange, type = 'text', ...otherProps }
     }
   }, [error]);
 
-  const errorId = error ? `${otherProps.id}-error` : null;
+  const errorId = error ? `${otherProps.id}-error` : undefined;
 
   return (
     <div className="w-4/6 flex flex-col">

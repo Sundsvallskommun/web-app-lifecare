@@ -1,11 +1,7 @@
 {
   "compilerOptions": {
     "target": "es5",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
+    "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": false,
@@ -20,48 +16,32 @@
     "incremental": true,
     "baseUrl": ".",
     "paths": {
-      "@services/*": [
-        "src/services/*"
-      ],
-      "@components/*": [
-        "src/components/*"
-      ],
-      "@interfaces/*": [
-        "src/interfaces/*"
-      ],
-      "@contexts/*": [
-        "src/contexts/*"
-      ],
-      "@layouts/*": [
-        "src/layouts/*"
-      ],
-      "@styles/*": [
-        "src/styles/*"
-      ],
-      "@utils/*": [
-        "src/utils/*"
-      ],
-      "@pages/*": [
-        "src/pages/*"
-      ],
-      "@middlewares/*": [
-        "src/utils/middlewares/*"
-      ],
-      "@public/*": [
-        "public/*"
-      ],
-      "@jestRoot/*": [
-        ".jest/*"
-      ]
-    }
+      "@services/*": ["src/services/*"],
+      "@components/*": ["src/components/*"],
+      "@interfaces/*": ["src/interfaces/*"],
+      "@contexts/*": ["src/contexts/*"],
+      "@layouts/*": ["src/layouts/*"],
+      "@styles/*": ["src/styles/*"],
+      "@utils/*": ["src/utils/*"],
+      "@app/*": ["src/app/*"],
+      "@middlewares/*": ["src/utils/middlewares/*"],
+      "@public/*": ["public/*"],
+      "@jestRoot/*": [".jest/*"]
+    },
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "strictNullChecks": true
   },
   "include": [
     "next-env.d.ts",
     "node_modules/dayjs/plugin/utc.d.ts",
     "**/*.ts",
-    "**/*.tsx"
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
   ],
-  "exclude": [
-    "node_modules"
-  ]
+  "exclude": ["node_modules"]
 }

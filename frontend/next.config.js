@@ -1,5 +1,5 @@
-import envalid from 'envalid';
-import bundleAnalyzer from '@next/bundle-analyzer';
+const envalid = require('envalid');
+const bundleAnalyzer = require('@next/bundle-analyzer');
 
 const authDependent = envalid.makeValidator((x) => {
   const authEnabled = process.env.HEALTH_AUTH === 'true';
@@ -20,12 +20,7 @@ envalid.cleanEnv(process.env, {
 
 const withBundleAnalyzer = bundleAnalyzer({ enabled: process.env.ANALYZE === 'true' });
 
-export default withBundleAnalyzer({
-  //output: 'standalone',
-  i18n: {
-    locales: ['sv'],
-    defaultLocale: 'sv',
-  },
+module.exports = withBundleAnalyzer({
   images: {
     remotePatterns: process.env.DOMAIN_NAME ? [{ protocol: 'https', hostname: process.env.DOMAIN_NAME }] : [],
     formats: ['image/avif', 'image/webp'],
