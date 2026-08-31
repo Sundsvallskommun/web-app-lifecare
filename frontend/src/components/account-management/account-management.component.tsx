@@ -13,7 +13,7 @@ export const AccountManagement: React.FC = () => {
   const fetchContractorData = useContractorStore((s) => s.fetchContractorData);
 
   useEffect(() => {
-    if (user && user.username) {
+    if (user?.username) {
       fetchContractorData();
     }
   }, [fetchContractorData, user]);

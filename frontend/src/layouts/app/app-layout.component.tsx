@@ -8,9 +8,8 @@ import dayjs from 'dayjs';
 import 'dayjs/locale/sv';
 import utc from 'dayjs/plugin/utc';
 import updateLocale from 'dayjs/plugin/updateLocale';
-import { ReactNode, useMemo, useState } from 'react';
+import { ReactNode, useMemo, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
 import { registerNavigator } from '@services/api-service';
 
 dayjs.extend(utc);
@@ -34,7 +33,7 @@ dayjs.updateLocale('sv', {
   monthsShort: ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec'],
 });
 
-export default function AppLayout({ children }: { children: ReactNode }) {
+export default function AppLayout({ children }: Readonly<{ children: ReactNode }>) {
   const router = useRouter();
   const [colorScheme] = useState('light');
 
