@@ -1,3 +1,5 @@
+'use client';
+
 import { ConfirmationDialogContextProvider } from '@sk-web-gui/react';
 import { createContext, useContext, useState } from 'react';
 
@@ -8,7 +10,11 @@ export interface AppContextInterface {
   setDefaults: () => void;
 }
 
-const AppContext = createContext<AppContextInterface>(null);
+const AppContext = createContext<AppContextInterface>({
+  isCookieConsentOpen: false,
+  setIsCookieConsentOpen: () => {},
+  setDefaults: () => {},
+});
 
 export function AppWrapper({ children }) {
   const contextDefaults = {

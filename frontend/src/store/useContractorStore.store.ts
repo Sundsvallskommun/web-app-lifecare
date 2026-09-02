@@ -1,6 +1,6 @@
 import { BasicContractorData } from '@interfaces/contractor';
 import { getContractorByLoginName } from '@services/contractor.service';
-import { create } from 'zustand';
+import { createWithEqualityFn } from 'zustand/traditional';
 
 interface ContractorStore {
   contractorData: BasicContractorData | null;
@@ -8,7 +8,7 @@ interface ContractorStore {
   fetchContractorData: () => Promise<void>;
 }
 
-const useContractorStore = create<ContractorStore>((set) => ({
+const useContractorStore = createWithEqualityFn<ContractorStore>((set) => ({
   contractorData: null,
   setContractorData: (data) => set({ contractorData: data }),
   fetchContractorData: async () => {

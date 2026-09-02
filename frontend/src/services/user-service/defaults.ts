@@ -10,7 +10,7 @@ export const emptyUser: User = {
   username: '',
   isAdmin: false,
   isSuperAdmin: false,
-  orgId: null,
+  orgId: undefined,
   orgName: '',
 };
 

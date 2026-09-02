@@ -12,8 +12,7 @@ import helmet from 'helmet';
 import hpp from 'hpp';
 import morgan from 'morgan';
 import passport from 'passport';
-import { Strategy, VerifiedCallback } from 'passport-saml';
-import bodyParser from 'body-parser';
+import { Strategy, VerifiedCallback } from '@node-saml/passport-saml';
 import { useExpressServer, getMetadataArgsStorage } from 'routing-controllers';
 import { routingControllersToSpec } from 'routing-controllers-openapi';
 import swaggerUi from 'swagger-ui-express';
@@ -41,11 +40,11 @@ import {
 } from '@config';
 import errorMiddleware from '@middlewares/error.middleware';
 import { logger, stream } from '@utils/logger';
-import { Profile } from './interfaces/profile.interface';
+import { Profile } from '@interfaces/profile.interface';
 import ApiService from '@/services/api.service';
-import { HttpException } from './exceptions/HttpException';
+import { HttpException } from '@exceptions/HttpException';
 import { join } from 'path';
-import { Contractor, User } from './interfaces/users.interface';
+import { Contractor, User } from '@interfaces/users.interface';
 import { getApiBase } from '@/config/api-config';
 
 const SessionStoreCreate = SESSION_MEMORY ? createMemoryStore(session) : createFileStore(session);
@@ -70,11 +69,13 @@ const samlStrategy = new Strategy(
     entryPoint: SAML_ENTRY_SSO,
     privateKey: SAML_PRIVATE_KEY,
     // Identity Provider's public key
-    cert: SAML_IDP_PUBLIC_CERT,
+    idpCert: SAML_IDP_PUBLIC_CERT,
     issuer: SAML_ISSUER,
     wantAssertionsSigned: false,
     logoutCallbackUrl: SAML_LOGOUT_CALLBACK_URL,
-    acceptedClockSkewMs: -1
+    acceptedClockSkewMs: -1,
+    wantAuthnResponseSigned: false,
+    audience: false,
   },
   async function (profile: Profile, done: VerifiedCallback) {
     if (!profile) {
@@ -83,7 +84,8 @@ const samlStrategy = new Strategy(
         message: 'Missing SAML profile',
       });
     }
-    const { givenName, surname, username, groups } = profile;
+
+    const { givenname: givenName, surname, uid: username, groups } = profile;
 
     if (!givenName || !surname || !username || !groups) {
       return done({
@@ -93,9 +95,9 @@ const samlStrategy = new Strategy(
     }
 
     try {
-      const userGroups = groups ? groups.split(',') : [];
-      const isSuperAdmin = userGroups.includes('SG_Appl_LOV_InternalAdmin');
-      const isAdmin = userGroups.includes('SG_Appl_LOV_ExternalAdmin');
+      const userGroups = groups ? groups.toLowerCase().split(',') : [];
+      const isSuperAdmin = userGroups.includes('SG_Appl_LOV_InternalAdmin'.toLowerCase());
+      const isAdmin = userGroups.includes('SG_Appl_LOV_ExternalAdmin'.toLowerCase());
 
       if (!isAdmin && !isSuperAdmin) {
         return done({
@@ -105,15 +107,17 @@ const samlStrategy = new Strategy(
       }
 
       if (isSuperAdmin) {
-        const employee = await apiService.get<any>({ url: `${getApiBase('employee')}/${MUNICIPALITY_ID}/portalpersondata/personal/${username}` });
+        const employee = await apiService.get<any>({
+          url: `${getApiBase('employee')}/${MUNICIPALITY_ID}/portalpersondata/personal/${username}`,
+        });
         const { personid: personId } = employee.data;
 
         const findUser: User = {
           guid: personId,
           name: `${givenName} ${surname}`,
-          givenName: givenName,
+          givenName: givenName as string,
           surname: surname,
-          username: username,
+          username: username as string,
           personId,
           isSuperAdmin,
           isAdmin,
@@ -132,7 +136,7 @@ const samlStrategy = new Strategy(
 
       const { personId, orgId, orgName, retireDate } = metaUser.data[0];
 
-      const contracts = metaUser.data.map(contract => ({
+      const contracts = metaUser.data?.map(contract => ({
         personId: contract.personId,
         contractId: contract.contractId,
         orgId: contract.orgId,
@@ -145,9 +149,9 @@ const samlStrategy = new Strategy(
       const findUser: User = {
         guid: personId,
         name: `${givenName} ${surname}`,
-        givenName: givenName,
+        givenName: givenName as string,
         surname: surname,
-        username: username,
+        username: username as string,
         isSuperAdmin,
         isAdmin,
         orgId,
@@ -164,6 +168,10 @@ const samlStrategy = new Strategy(
       }
       done(err);
     }
+  },
+
+  async function (_profile: Profile, done: VerifiedCallback) {
+    return done(null, {});
   },
 );
 
@@ -226,9 +234,9 @@ class App {
 
     this.app.get(
       `${BASE_URL_PREFIX}/saml/login`,
-      (req, res, next) => {
+      (req, _res, next) => {
         if (req.session.returnTo) {
-          req.query.RelayState = req.session.returnTo;
+          req.url = `${req.path}?RelayState=${encodeURIComponent(req.session.returnTo)}`;
         }
         next();
       },
@@ -239,13 +247,13 @@ class App {
       },
     );
 
-    this.app.get(`${BASE_URL_PREFIX}/saml/metadata`, (req, res) => {
+    this.app.get(`${BASE_URL_PREFIX}/saml/metadata`, (_req, res) => {
       res.type('application/xml');
       const metadata = samlStrategy.generateServiceProviderMetadata(SAML_PUBLIC_KEY, SAML_PUBLIC_KEY);
       res.status(200).send(metadata);
     });
 
-    this.app.get(`${BASE_URL_PREFIX}/saml/logout`, bodyParser.urlencoded({ extended: false }), (req, res, next) => {
+    this.app.get(`${BASE_URL_PREFIX}/saml/logout`, (req, res, next) => {
       samlStrategy.logout(req as any, () => {
         req.logout(err => {
           if (err) {
@@ -257,7 +265,7 @@ class App {
       });
     });
 
-    this.app.get(`${BASE_URL_PREFIX}/saml/logout/callback`, bodyParser.urlencoded({ extended: false }), (req, res, next) => {
+    this.app.get(`${BASE_URL_PREFIX}/saml/logout/callback`, (req, res, next) => {
       // FIXME: is this enough or do we need to do something more?
       req.logout(err => {
         if (err) {
@@ -270,13 +278,12 @@ class App {
 
     this.app.post(
       `${BASE_URL_PREFIX}/saml/login/callback`,
-      bodyParser.urlencoded({ extended: false }),
       (req, res, next) => {
         passport.authenticate('saml', {
           failureRedirect: SAML_FAILURE_REDIRECT,
         })(req, res, next);
       },
-      (req, res, next) => {
+      (_req, res, _next) => {
         res.redirect(SAML_SUCCESS_REDIRECT);
       },
     );
@@ -308,7 +315,7 @@ class App {
     const storage = getMetadataArgsStorage();
     const spec = routingControllersToSpec(storage, routingControllersOptions, {
       components: {
-        schemas: schemas as { [schema: string]: unknown },
+        schemas,
         securitySchemes: {
           basicAuth: {
             scheme: 'basic',

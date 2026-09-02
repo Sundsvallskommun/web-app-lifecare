@@ -8,12 +8,23 @@
   }
 
   .max-width-content {
-    @apply max-w-[140rem];
+    @apply max-w-[160rem];
   }
 
   .header-container .header-content,
   .TabMenu > .tab-wrapper,
   .container {
     @apply max-width-content;
+  }
+
+  .table-scroll-x {
+    .sk-table {
+      width: max-content;
+      min-width: 100%;
+    }
+
+    .sk-table-col-content {
+      @apply whitespace-nowrap;
+    }
   }
 }

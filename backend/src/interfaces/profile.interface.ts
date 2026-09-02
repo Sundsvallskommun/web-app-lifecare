@@ -1,4 +1,4 @@
-import { Profile as SamlProfile } from 'passport-saml';
+import { Profile as SamlProfile } from '@node-saml/passport-saml';
 
 export interface Profile extends SamlProfile {
   givenName: string;

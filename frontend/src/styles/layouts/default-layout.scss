@@ -1,12 +1,13 @@
 .DefaultLayout {
   .main-container {
-    @apply flex pt-10 bg-gray-lighter pb-20 md:px-lg;
+    @apply flex pt-20 bg-background-200 pb-20 md:px-lg;
 
     .container {
       @apply mx-auto flex gap-x-5;
     }
 
     main {
+      min-width: 0;
       @apply flex-grow;
     }
   }
