@@ -5,6 +5,7 @@ import { HttpException } from '@/exceptions/HttpException';
 import { IsString } from 'class-validator';
 import ApiService from '@/services/api.service';
 import authMiddleware from '@/middlewares/auth.middleware';
+import { getApiBase } from '@/config/api-config';
 
 interface ResponseData<T> {
   data: T;
@@ -28,7 +29,7 @@ export class AccountController {
     try {
       const { personId } = body;
 
-      const url = `/metaadmin/1.0/account/resetcontractorpwandsendsms`;
+      const url = `/${getApiBase('metaadmin')}/account/resetcontractorpwandsendsms`;
 
       const result = await this.apiService.post<{ status: string }>({ url: url, data: body });
 

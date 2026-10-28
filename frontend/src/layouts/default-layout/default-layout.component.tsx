@@ -1,14 +1,19 @@
+'use client';
 import { Avatar, Footer, Header } from '@sk-web-gui/react';
-import { useContext, useRef } from 'react';
-
-import Head from 'next/head';
+import { ReactNode, useContext, useRef } from 'react';
 import NextLink from 'next/link';
 import { useUserStore } from '@services/user-service/user-service';
 import { getInitials } from '@utils/get-initials';
 import { ModalContext } from '@contexts/modalContext';
+import { useRouter } from 'next/navigation';
 
-export default function DefaultLayout({ title, children }) {
-  const initialFocus = useRef(null);
+interface DefaultLayoutProps {
+  children: ReactNode;
+}
+
+export default function DefaultLayout({ children }: Readonly<DefaultLayoutProps>) {
+  const initialFocus = useRef<HTMLElement>(null);
+  const router = useRouter();
 
   const { isModalOpen } = useContext(ModalContext);
 
@@ -18,35 +23,27 @@ export default function DefaultLayout({ title, children }) {
 
   const setInitialFocus = () => {
     setTimeout(() => {
-      initialFocus.current && initialFocus.current.focus();
+      if (initialFocus.current) {
+        initialFocus.current.focus();
+      }
     });
   };
 
   return (
     <div className="DefaultLayout full-page-layout">
-      <Head>
-        <title>{title}</title>
-        <meta name="description" content="LOV-Användare" />
-      </Head>
-
       <a href="#mainContent" className="skip-link">
         Hoppa till huvudinnehåll
       </a>
 
-      <NextLink legacyBehavior={true} href="#content" passHref>
-        <a onClick={setInitialFocus} className="next-link-a">
-          Hoppa till innehåll
-        </a>
+      <NextLink href="#content" onClick={setInitialFocus} className="next-link-a">
+        Hoppa till innehåll
       </NextLink>
 
-      <Header
-        title={`Externa leverantörer`}
-        LogoLinkWrapperComponent={<NextLink legacyBehavior={true} href={'/'} passHref />}
-      >
+      <Header title={`Externa leverantörer`} logoLinkOnClick={() => router.push('/')}>
         <Avatar imageAlt="Avatar" imageUrl="" initials={userInitials} />
       </Header>
 
-      <div className={`main-container flex-grow ${isModalOpen ? 'aria-hidden="true"' : ''}`}>
+      <div className="main-container flex-grow" aria-hidden={isModalOpen || undefined}>
         <div className="container">
           <main id="mainContent">{children}</main>
         </div>

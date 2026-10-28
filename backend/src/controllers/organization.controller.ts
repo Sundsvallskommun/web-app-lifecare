@@ -4,6 +4,7 @@ import { OpenAPI } from 'routing-controllers-openapi';
 import authMiddleware from '@/middlewares/auth.middleware';
 import { HttpException } from '@/exceptions/HttpException';
 import { RequestWithUser } from '@/interfaces/auth.interface';
+import { getApiBase } from '@/config/api-config';
 
 interface ApiOrganization {
   orgId: number;
@@ -37,7 +38,7 @@ export class OrganizationController {
   async getCompanies(@Req() req: RequestWithUser): Promise<ResponseData<Organization[]>> {
     try {
       if (req.user.isSuperAdmin) {
-        const url = `/metaadmin/1.0/organization?treeLevel=2&companyId=71`;
+        const url = `/${getApiBase('metaadmin')}/organization?treeLevel=2&companyId=71`;
         const res = await this.apiService.get<ApiOrganization[]>({ url });
         const { data } = res;
         const orgs = data?.map(org => ({

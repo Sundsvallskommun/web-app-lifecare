@@ -5,10 +5,10 @@
 Dessa APIer används i projektet, applikationsanvändaren i WSO2 måste prenumerera på dessa.
 
 | API             | Version |
-| --------------- | ------: |
+| --------------- |--------:|
 | metaadmin       |     1.0 |
-| employee        |     1.0 |
-| citizen         |     2.0 |
+| employee        |     2.0 |
+| citizen         |     3.0 |
 | SimulatorServer |     2.0 |
 
 ## Utveckling

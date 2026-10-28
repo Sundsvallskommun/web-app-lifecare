@@ -6,6 +6,7 @@ import { HttpException } from '@/exceptions/HttpException';
 import { RequestWithUser } from '@/interfaces/auth.interface';
 import { IsNumber, IsOptional, IsString } from 'class-validator';
 import { Contractor } from '@/interfaces/users.interface';
+import { getApiBase } from '@/config/api-config';
 
 interface ResponseData<T> {
   data: T;
@@ -65,7 +66,7 @@ export class ContractorController {
     if (!contracts || !personId || !contractId) {
       return false;
     }
-    const url = `/metaadmin/1.0/contractor/${personId}`;
+    const url = `/${getApiBase('metaadmin')}/contractor/${personId}`;
     const contractorRes = await this.apiService.get<Contractor[]>({ url });
     const { data: contractors } = contractorRes;
 
@@ -91,7 +92,7 @@ export class ContractorController {
       const { contracts, isSuperAdmin } = req.user;
 
       if (isSuperAdmin) {
-        const url = `/metaadmin/1.0/contractors`;
+        const url = `/${getApiBase('metaadmin')}/contractors`;
         const res = await this.apiService.get<any>({ url });
         return { data: res.data, message: 'success', status: 200 };
       }
@@ -102,7 +103,7 @@ export class ContractorController {
 
       for (let i = 0; i < orgIds.length; i++) {
         const orgId = orgIds[i];
-        const url = `/metaadmin/1.0/organization/${orgId}/contractors`;
+        const url = `/${getApiBase('metaadmin')}/organization/${orgId}/contractors`;
         const res = await this.apiService.get<any>({ url });
         const { data } = res;
         contractors.push(...data);
@@ -140,7 +141,7 @@ export class ContractorController {
         throw new HttpException(400, 'Bad data');
       }
 
-      const urlContractor = `/metaadmin/1.0/contractor`;
+      const urlContractor = `/${getApiBase('metaadmin')}/contractor`;
 
       const newContractorData = {
         personId,
@@ -152,7 +153,7 @@ export class ContractorController {
       };
       const contractorRes = await this.apiService.post<any>({ url: urlContractor, data: newContractorData });
 
-      const urlPerson = `/metaadmin/1.0/person/${personId}`;
+      const urlPerson = `/${getApiBase('metaadmin')}/person/${personId}`;
       const personData = {
         customFriendlyGivenname,
         restrictedMobile,
@@ -182,7 +183,7 @@ export class ContractorController {
       }
 
       const { personId, contractId, ttlMonths, restrictedMobile } = body;
-      const url = `/metaadmin/1.0/contractor/${contractId}`;
+      const url = `/${getApiBase('metaadmin')}/contractor/${contractId}`;
 
       let res: any = '';
 
@@ -194,7 +195,7 @@ export class ContractorController {
       }
 
       if (personId && restrictedMobile) {
-        const urlPerson = `/metaadmin/1.0/person/${personId}`;
+        const urlPerson = `/${getApiBase('metaadmin')}/person/${personId}`;
         const personData = {
           restrictedMobile,
         };
@@ -226,7 +227,7 @@ export class ContractorController {
         }
       }
 
-      const url = `/metaadmin/1.0/contractor/${contractId}`;
+      const url = `/${getApiBase('metaadmin')}/contractor/${contractId}`;
       const contractorRes = await this.apiService.delete<{ status: string }>({ url });
 
       return { data: contractorRes, message: 'Contractor successfully deleted', status: 204 };
