@@ -1,4 +1,4 @@
-import { cleanEnv, port, str, url,  } from 'envalid';
+import { cleanEnv, port, str, url } from 'envalid';
 
 // NOTE: Make sure we got these in ENV
 const validateEnv = () => {

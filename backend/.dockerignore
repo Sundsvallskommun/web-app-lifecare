@@ -3,15 +3,14 @@
 /node_modules
 
 # code formatter
-.eslintrc
-.eslintignore
+eslint.config.js
 .editorconfig
 .huskyrc
 .lintstagedrc.json
 .prettierrc
 
 # test
-jest.config.js
+vitest.config.mts
 
 # docker
 Dockerfile
