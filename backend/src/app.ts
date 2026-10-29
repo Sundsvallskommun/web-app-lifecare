@@ -40,6 +40,9 @@ import {
 } from '@config';
 import errorMiddleware from '@middlewares/error.middleware';
 import { logger, stream } from '@utils/logger';
+import authMiddleware from '@middlewares/auth.middleware';
+import { auditGlobalAuth } from '@middlewares/global-auth';
+import { Ctor } from '@interfaces/global-auth.interface';
 import { Profile } from '@interfaces/profile.interface';
 import ApiService from '@/services/api.service';
 import { HttpException } from '@exceptions/HttpException';
@@ -290,6 +293,8 @@ class App {
   }
 
   private initializeRoutes(controllers: Function[]) {
+    auditGlobalAuth({ authMiddleware, controllers: controllers as Ctor[], logger });
+
     useExpressServer(this.app, {
       routePrefix: BASE_URL_PREFIX,
       cors: {

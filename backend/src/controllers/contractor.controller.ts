@@ -52,6 +52,7 @@ export class DeleteContractorDTO {
   personId: string;
 }
 @Controller()
+@UseBefore(authMiddleware)
 export class ContractorController {
   private apiService = new ApiService();
 
@@ -86,7 +87,6 @@ export class ContractorController {
 
   @Get('/mycontractors')
   @OpenAPI({ summary: 'Get contractor by login name' })
-  @UseBefore(authMiddleware)
   async getUserCompanyContractors(@Req() req: RequestWithUser): Promise<ResponseData<any>> {
     try {
       const { contracts, isSuperAdmin } = req.user;
@@ -117,7 +117,6 @@ export class ContractorController {
 
   @Post('/contractor')
   @OpenAPI({ summary: 'Create new contractor for logged in users org' })
-  @UseBefore(authMiddleware)
   async newOrgUser(@Req() req: RequestWithUser, @Body() body: NewContractorDTO): Promise<ResponseData<any>> {
     try {
       const { personId, ttlMonths, emailAddress, customFriendlyGivenname, restrictedMobile } = body;
@@ -168,7 +167,6 @@ export class ContractorController {
 
   @Patch('/contractor')
   @OpenAPI({ summary: 'Patch user' })
-  @UseBefore(authMiddleware)
   async updateOrgUser(@Req() req: RequestWithUser, @Body() body: PathContractorDTO): Promise<ResponseData<any>> {
     try {
       const { isSuperAdmin } = req.user;
@@ -210,7 +208,6 @@ export class ContractorController {
 
   @Delete('/contractor/:contractId/:personId')
   @OpenAPI({ summary: 'Delete contractor by contractId' })
-  @UseBefore(authMiddleware)
   async deleteOrgUser(
     @Req() req: RequestWithUser,
     @Param('contractId') contractId: number,

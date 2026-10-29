@@ -29,12 +29,12 @@ interface ResponseData<T> {
 type Organization = Pick<ApiOrganization, 'orgId' | 'orgName'>;
 
 @Controller()
+@UseBefore(authMiddleware)
 export class OrganizationController {
   private apiService = new ApiService();
 
   @Get('/organization')
   @OpenAPI({ summary: 'Get orgName by treeLevel and companyId' })
-  @UseBefore(authMiddleware)
   async getCompanies(@Req() req: RequestWithUser): Promise<ResponseData<Organization[]>> {
     try {
       if (req.user.isSuperAdmin) {

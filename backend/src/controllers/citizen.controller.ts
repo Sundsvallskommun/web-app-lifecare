@@ -25,12 +25,12 @@ export class citizenSocialSecurityNumberDTO {
 }
 
 @Controller()
+@UseBefore(authMiddleware)
 export class CitizenController {
   private apiService = new ApiService();
 
   @Post('/lookup')
   @OpenAPI({ summary: 'Get citizen info from social security number' })
-  @UseBefore(authMiddleware)
   async getCitizen(@Req() req: RequestWithUser, @Body() body: citizenDTO): Promise<ResponseData<any>> {
     try {
       const { SocialSecurityNumber } = body;
@@ -61,7 +61,6 @@ export class CitizenController {
 
   @Post('/lookup/socialsecuritynumber')
   @OpenAPI({ summary: 'Get citizen social security number from personid' })
-  @UseBefore(authMiddleware)
   async getCitizenSocialSecurityNumber(@Req() req: RequestWithUser, @Body() body: citizenSocialSecurityNumberDTO): Promise<ResponseData<any>> {
     try {
       const { personId } = body;
