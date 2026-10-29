@@ -27,8 +27,6 @@ export class AccountController {
   @UseBefore(authMiddleware)
   async resetPasswordAndSendSMS(@Req() req: RequestWithUser, @Body() body: ResetPasswordDTO): Promise<ResponseData<any>> {
     try {
-      const { personId } = body;
-
       const url = `/${getApiBase('metaadmin')}/account/resetcontractorpwandsendsms`;
 
       const result = await this.apiService.post<{ status: string }>({ url: url, data: body });
