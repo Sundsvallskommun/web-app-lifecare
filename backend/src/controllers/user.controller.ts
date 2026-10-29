@@ -18,10 +18,10 @@ type UserData = Pick<User, 'name' | 'username' | 'orgId' | 'orgName' | 'isAdmin'
 }*/
 
 @Controller()
+@UseBefore(authMiddleware)
 export class UserController {
   @Get('/me')
   @OpenAPI({ summary: 'Return current user' })
-  @UseBefore(authMiddleware)
   async getUser(@Req() req: RequestWithUser, @Res() response: any): Promise<UserData> {
     const { name, username, isSuperAdmin, isAdmin, orgId, orgName } = req.user;
 

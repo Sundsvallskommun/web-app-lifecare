@@ -19,12 +19,12 @@ export class ResetPasswordDTO {
 }
 
 @Controller()
+@UseBefore(authMiddleware)
 export class AccountController {
   private apiService = new ApiService();
 
   @Post('/account')
   @OpenAPI({ summary: 'Reset contractor password and send SMS' })
-  @UseBefore(authMiddleware)
   async resetPasswordAndSendSMS(@Req() req: RequestWithUser, @Body() body: ResetPasswordDTO): Promise<ResponseData<any>> {
     try {
       const url = `/${getApiBase('metaadmin')}/account/resetcontractorpwandsendsms`;
