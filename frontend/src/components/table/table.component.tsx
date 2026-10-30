@@ -55,7 +55,7 @@ export const Table: React.FunctionComponent<TableProps> = ({ contractorData }) =
 
         if (response.error) {
           snackbar({
-            message: response.message,
+            message: response.status === 403 ? 'Du saknar behörighet att radera användaren.' : response.message,
             status: 'error',
             position: 'bottom-left',
           });

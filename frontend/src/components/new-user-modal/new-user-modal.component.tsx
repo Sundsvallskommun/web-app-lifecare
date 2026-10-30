@@ -107,31 +107,35 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, trig
     }
 
     for (const orgId of companyIds) {
-      try {
-        const { error } = await newContractor({
-          personId: personId,
-          ttlMonths: monthsToAdd,
-          emailAddress: email,
-          orgId: parseInt(orgId, 10),
-          restrictedMobile: phone,
-        });
-        if (error) {
-          throw error;
-        }
-        snackbar({
-          message: `Användaren skapades för orgId: ${orgId}.`,
-          status: 'success',
-          position: 'bottom-left',
-        });
-      } catch (error) {
+      const { error, status, personUpdated } = await newContractor({
+        personId: personId,
+        ttlMonths: monthsToAdd,
+        emailAddress: email,
+        orgId: parseInt(orgId, 10),
+        restrictedMobile: phone,
+      });
+
+      if (error) {
         console.error(`Error creating contractor for orgId ${orgId}:`, error);
         snackbar({
-          message: `Error när användaren skapades för orgId ${orgId}.`,
+          message:
+            status === 403
+              ? `Du saknar behörighet att skapa användare för orgId ${orgId}.`
+              : `Error när användaren skapades för orgId ${orgId}.`,
           status: 'error',
           position: 'bottom-left',
         });
         break;
       }
+
+      snackbar({
+        message:
+          personUpdated === false
+            ? `Användaren skapades för orgId: ${orgId}. Telefonnummer och namn ändrades inte, eftersom personen har avtal i en annan organisation.`
+            : `Användaren skapades för orgId: ${orgId}.`,
+        status: personUpdated === false ? 'warning' : 'success',
+        position: 'bottom-left',
+      });
     }
 
     if (onSave) {

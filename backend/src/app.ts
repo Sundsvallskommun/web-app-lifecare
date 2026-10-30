@@ -47,7 +47,8 @@ import { Profile } from '@interfaces/profile.interface';
 import ApiService from '@/services/api.service';
 import { HttpException } from '@exceptions/HttpException';
 import { join } from 'path';
-import { Contractor, User } from '@interfaces/users.interface';
+import { User } from '@interfaces/users.interface';
+import { fetchContracts, refreshContracts } from '@/services/access.service';
 import { getApiBase } from '@/config/api-config';
 
 const SessionStoreCreate = SESSION_MEMORY ? createMemoryStore(session) : createFileStore(session);
@@ -128,26 +129,16 @@ const samlStrategy = new Strategy(
         return done(null, findUser);
       }
 
-      const metaUser = await apiService.get<Contractor[]>({ url: `/${getApiBase('metaadmin')}/contractor/loginname/${username}` });
+      const contracts = await fetchContracts(username as string);
 
-      if (metaUser.data.length <= 0) {
+      if (contracts.length <= 0) {
         return done({
           name: 'MISSING_IN_METAADMIN',
           message: 'Missing user in meta admin',
         });
       }
 
-      const { personId, orgId, orgName, retireDate } = metaUser.data[0];
-
-      const contracts = metaUser.data?.map(contract => ({
-        personId: contract.personId,
-        contractId: contract.contractId,
-        orgId: contract.orgId,
-        orgName: contract.orgName,
-        isEmergencyClosed: contract.isEmergencyClosed,
-        hireDate: contract.hireDate,
-        retireDate: contract.retireDate,
-      }));
+      const { personId, orgId, orgName, retireDate } = contracts[0];
 
       const findUser: User = {
         guid: personId,
@@ -162,6 +153,7 @@ const samlStrategy = new Strategy(
         retireDate,
         personId,
         contracts,
+        contractsFetchedAt: Date.now(),
       };
 
       done(null, findUser);
@@ -234,6 +226,19 @@ class App {
     this.app.use(passport.initialize());
     this.app.use(passport.session());
     passport.use('saml', samlStrategy);
+
+    // Contracts decide which orgs an admin may act within, so they are re-read from metaadmin
+    // when stale instead of trusted from login for the whole session.
+    this.app.use(async (req, _res, next) => {
+      if (!req.isAuthenticated()) return next();
+
+      try {
+        await refreshContracts(req.user as User);
+        next();
+      } catch (error) {
+        next(error);
+      }
+    });
 
     this.app.get(
       `${BASE_URL_PREFIX}/saml/login`,

@@ -27,18 +27,28 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onSave, sh
   const handleSave = async () => {
     const isValid = checkPhoneValidity(phone);
     if (isValid && onSave && user.contractId) {
-      try {
-        await updateContractorDetails({
-          ttlMonths: monthsToAdd,
-          contractId: user.contractId,
-          personId: user.personId,
-          restrictedMobile: phone,
-        });
-        fetchContractorData();
-      } catch (error) {
+      const { error, status } = await updateContractorDetails({
+        ttlMonths: monthsToAdd,
+        contractId: user.contractId,
+        personId: user.personId,
+        // Only when changed: changing it is denied if the person has an active contract in another org
+        ...(phone !== user.restrictedMobile ? { restrictedMobile: phone } : {}),
+      });
+
+      if (error) {
         console.error('Error updateContractorDetails', error);
+        snackbar({
+          message:
+            status === 403
+              ? 'Du saknar behörighet att ändra användaren. Har personen avtal i en annan organisation, kontakta en superadmin.'
+              : 'Det gick inte att uppdatera användaren.',
+          status: 'error',
+          position: 'bottom-left',
+        });
+        return;
       }
 
+      fetchContractorData();
       onSave();
       snackbar({
         message: 'Användaren uppdaterades.',
@@ -68,24 +78,27 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onSave, sh
     const confirmed = await showConfirmation(confirmationTitle, confirmationMessage, confirmLabel, dismissLabel);
 
     if (confirmed) {
-      try {
-        // Call the password reset service and pass in the necessary data
-        await resetPasswordAndSendSMS({ personId: user.personId });
-        // Handle the response from the reset service
-        snackbar({
-          message: 'Lösenordet har ändrats och skickats till användaren via SMS.',
-          status: 'success',
-          position: 'bottom-left',
-        });
-      } catch (error) {
-        // Handle any errors that occur during the reset process
+      // The service returns its error instead of throwing
+      const { error, status } = await resetPasswordAndSendSMS({ personId: user.personId });
+
+      if (error) {
         console.error('Error resetting password', error);
         snackbar({
-          message: 'Det gick inte att återställa lösenordet.',
+          message:
+            status === 403
+              ? 'Du saknar behörighet att återställa lösenordet för användaren.'
+              : 'Det gick inte att återställa lösenordet.',
           status: 'error',
           position: 'bottom-left',
         });
+        return;
       }
+
+      snackbar({
+        message: 'Lösenordet har ändrats och skickats till användaren via SMS.',
+        status: 'success',
+        position: 'bottom-left',
+      });
     }
   };
 
