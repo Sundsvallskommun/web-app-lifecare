@@ -10,7 +10,7 @@ export interface Account {
 
 export const resetPasswordAndSendSMS = async (
   account: Account
-): Promise<{ data?: Account; message?: string; error?: Error }> => {
+): Promise<{ data?: Account; message?: string; error?: Error; status?: number }> => {
   try {
     const response = await apiService.post<Account>(`/account`, account);
     return { data: response.data, message: 'Reset password and sent sms success' };
@@ -20,6 +20,7 @@ export const resetPasswordAndSendSMS = async (
       error: e.response?.status
         ? new Error(`Error ${e.response.status}: ${e.response.statusText}`)
         : new Error('An unknown error occurred'),
+      status: e.response?.status,
     };
   }
 };
