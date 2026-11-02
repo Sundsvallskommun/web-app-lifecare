@@ -54,6 +54,10 @@ describe('registered routes', () => {
     expect(registeredRoutes().length).toBeGreaterThan(EXPECTED_PUBLIC_ROUTES.length);
   });
 
+  it('does not expose the personId to personal number lookup', () => {
+    expect(registeredRoutes()).not.toContain('POST /lookup/socialsecuritynumber');
+  });
+
   it('has no contradictory or empty controllers, and no middleware running ahead of authentication', () => {
     expect(report.warnings).toEqual([]);
   });
