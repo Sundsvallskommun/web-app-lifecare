@@ -2,8 +2,8 @@ import { Controller, Get, UseBefore, Req } from 'routing-controllers';
 import ApiService from '@/services/api.service';
 import { OpenAPI } from 'routing-controllers-openapi';
 import authMiddleware from '@/middlewares/auth.middleware';
-import { HttpException } from '@/exceptions/HttpException';
 import { RequestWithUser } from '@/interfaces/auth.interface';
+import { allowedOrgIds, toHttpException } from '@/services/access.service';
 import { getApiBase } from '@/config/api-config';
 
 interface ApiOrganization {
@@ -48,15 +48,18 @@ export class OrganizationController {
         return { data: orgs, message: 'success', status: 200 };
       }
 
-      const { contracts } = req.user;
-      const orgs = contracts.map(contract => ({
-        orgId: contract.orgId,
-        orgName: contract.orgName,
-      }));
+      // Active orgs only (B1), one entry each: delete() is true only for the first contract per org
+      const orgIds = allowedOrgIds(req.user);
+      const orgs = (req.user.contracts ?? [])
+        .filter(contract => orgIds.delete(contract.orgId))
+        .map(contract => ({
+          orgId: contract.orgId,
+          orgName: contract.orgName,
+        }));
 
       return { data: orgs, message: 'success', status: 200 };
     } catch (error) {
-      throw new HttpException(500, error.message);
+      throw toHttpException(error);
     }
   }
 }

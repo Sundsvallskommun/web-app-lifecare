@@ -21,4 +21,6 @@ export interface User {
   orgName?: string;
   retireDate?: string;
   contracts?: Contractor[];
+  // When contracts was last read from metaadmin (ms since epoch)
+  contractsFetchedAt?: number;
 }

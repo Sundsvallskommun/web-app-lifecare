@@ -4,6 +4,7 @@ import { OpenAPI } from 'routing-controllers-openapi';
 import authMiddleware from '@/middlewares/auth.middleware';
 import { HttpException } from '@/exceptions/HttpException';
 import { RequestWithUser } from '@/interfaces/auth.interface';
+import { toHttpException } from '@/services/access.service';
 import { IsString } from 'class-validator';
 import { getApiBase } from '@/config/api-config';
 import { MUNICIPALITY_ID } from '@config';
@@ -55,7 +56,7 @@ export class CitizenController {
 
       return { data: resData, message: 'success', status: 200 };
     } catch (error) {
-      throw new HttpException(500, error.message);
+      throw toHttpException(error);
     }
   }
 
@@ -69,7 +70,7 @@ export class CitizenController {
 
       return { data: res.data, message: 'success', status: 200 };
     } catch (error) {
-      throw new HttpException(500, error.message);
+      throw toHttpException(error);
     }
   }
 }
