@@ -17,6 +17,12 @@ import React, { ChangeEvent, useEffect, useRef, useState } from 'react';
 import useCompanyStore from 'src/store/useCompanyStore.store';
 import useContractorStore from 'src/store/useContractorStore.store';
 
+const lookupErrorMessage = (status?: number): string => {
+  if (status === 429) return 'För många uppslag. Vänta en stund och försök igen.';
+  if (status === 404) return 'Ingen person hittades för personnumret.';
+  return 'Error när persond detaljerna skulle hämtas. Vänligen försök igen.';
+};
+
 const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, triggerElement }) => {
   // User info
   const [personId, setPersonId] = useState('');
@@ -154,12 +160,7 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, trig
 
       if (citizen.error) {
         snackbar({
-          message:
-            citizen.status === 429
-              ? 'För många uppslag. Vänta en stund och försök igen.'
-              : citizen.status === 404
-              ? 'Ingen person hittades för personnumret.'
-              : 'Error när persond detaljerna skulle hämtas. Vänligen försök igen.',
+          message: lookupErrorMessage(citizen.status),
           status: 'error',
           position: 'bottom-left',
         });
