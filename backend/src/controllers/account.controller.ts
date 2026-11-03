@@ -6,6 +6,7 @@ import ApiService from '@/services/api.service';
 import { assertCanManagePerson, toHttpException } from '@/services/access.service';
 import authMiddleware from '@/middlewares/auth.middleware';
 import { getApiBase } from '@/config/api-config';
+import { logger } from '@utils/logger';
 
 interface ResponseData<T> {
   data: T;
@@ -32,7 +33,8 @@ export class AccountController {
 
       const url = `/${getApiBase('metaadmin')}/account/resetcontractorpwandsendsms`;
 
-      const result = await this.apiService.post<{ status: string }>({ url: url, data: { personId } });
+      logger.info(`Password reset: person '${personId}' by '${req.user.username}'`);
+      const result = await this.apiService.post<{ status: string }>({ url: url, data: { personId } }, req.user);
 
       return { data: result, message: 'Password reset and SMS sent successfully', status: 200 };
     } catch (error) {

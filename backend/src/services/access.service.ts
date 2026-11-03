@@ -56,7 +56,7 @@ export const allowedOrgIds = (user: User): Set<number> => {
 
 /** The contracts behind a login name, in the shape kept in the session. */
 export const fetchContracts = async (username: string): Promise<Contractor[]> => {
-  const res = await apiService.get<Contractor[]>({ url: `/${getApiBase('metaadmin')}/contractor/loginname/${username}` });
+  const res = await apiService.get<Contractor[]>({ url: `/${getApiBase('metaadmin')}/contractor/loginname/${username}` }, { username });
 
   return (res.data ?? []).map(contract => ({
     personId: contract.personId,
@@ -105,9 +105,9 @@ const assertPersonId = (personId: string): void => {
 };
 
 /** All contracts of a person, or null when the person has none (downstream 404). */
-const getPersonContracts = async (personId: string): Promise<Contractor[] | null> => {
+const getPersonContracts = async (user: User, personId: string): Promise<Contractor[] | null> => {
   try {
-    const res = await apiService.get<Contractor[]>({ url: `/${getApiBase('metaadmin')}/contractor/${personId}` });
+    const res = await apiService.get<Contractor[]>({ url: `/${getApiBase('metaadmin')}/contractor/${personId}` }, user);
     return res.data ?? [];
   } catch (error) {
     if (statusOf(error) === 404) return null;
@@ -136,7 +136,7 @@ export const assertCanManageContract = async (user: User, personId: string, cont
   if (user.isSuperAdmin) return;
 
   const orgIds = actingOrgIds(user);
-  const contracts = await getPersonContracts(personId);
+  const contracts = await getPersonContracts(user, personId);
   const contract = contracts?.find(candidate => candidate.contractId === id);
 
   if (!contract || !orgIds.has(contract.orgId)) {
@@ -158,7 +158,7 @@ export const assertCanManagePerson = async (user: User, personId: string): Promi
   if (user.isSuperAdmin) return;
 
   const orgIds = actingOrgIds(user);
-  const contracts = (await getPersonContracts(personId)) ?? [];
+  const contracts = (await getPersonContracts(user, personId)) ?? [];
 
   if (!hasActiveContractIn(contracts, orgIds)) {
     deny('person', personId, user);
@@ -176,7 +176,7 @@ export const assertCanEditPerson = async (user: User, personId: string): Promise
   if (user.isSuperAdmin) return;
 
   const orgIds = actingOrgIds(user);
-  const contracts = (await getPersonContracts(personId)) ?? [];
+  const contracts = (await getPersonContracts(user, personId)) ?? [];
 
   if (!hasActiveContractIn(contracts, orgIds) || hasActiveContractOutside(contracts, orgIds)) {
     deny('person', personId, user);
@@ -193,7 +193,7 @@ export const canSetUpPerson = async (user: User, personId: string): Promise<bool
   if (user.isSuperAdmin) return true;
 
   const orgIds = actingOrgIds(user);
-  const contracts = (await getPersonContracts(personId)) ?? [];
+  const contracts = (await getPersonContracts(user, personId)) ?? [];
 
   if (hasActiveContractOutside(contracts, orgIds)) {
     logger.info(`Person fields left unchanged: '${personId}' has an active contract outside the orgs of '${user.username}'`);
