@@ -6,6 +6,7 @@ import { HttpException } from '@/exceptions/HttpException';
 import { RequestWithUser } from '@/interfaces/auth.interface';
 import { IsNumber, IsOptional, IsString } from 'class-validator';
 import { getApiBase } from '@/config/api-config';
+import { logger } from '@utils/logger';
 import { allowedOrgIds, assertCanEditPerson, assertCanManageContract, assertInOrg, canSetUpPerson, toHttpException } from '@/services/access.service';
 
 interface ResponseData<T> {
@@ -55,7 +56,7 @@ export class ContractorController {
     try {
       if (req.user.isSuperAdmin) {
         const url = `/${getApiBase('metaadmin')}/contractors`;
-        const res = await this.apiService.get<any>({ url });
+        const res = await this.apiService.get<any>({ url }, req.user);
         return { data: res.data, message: 'success', status: 200 };
       }
 
@@ -66,7 +67,7 @@ export class ContractorController {
       for (let i = 0; i < orgIds.length; i++) {
         const orgId = orgIds[i];
         const url = `/${getApiBase('metaadmin')}/organization/${orgId}/contractors`;
-        const res = await this.apiService.get<any>({ url });
+        const res = await this.apiService.get<any>({ url }, req.user);
         const { data } = res;
         contractors.push(...data);
       }
@@ -82,7 +83,7 @@ export class ContractorController {
   async newOrgUser(@Req() req: RequestWithUser, @Body() body: NewContractorDTO): Promise<ResponseData<any> & { personUpdated: boolean }> {
     try {
       const { personId, ttlMonths, emailAddress, customFriendlyGivenname, restrictedMobile } = body;
-      const { guid, isSuperAdmin } = req.user;
+      const { guid, isSuperAdmin, username } = req.user;
 
       let chosenOrgId = body.orgId;
 
@@ -108,7 +109,8 @@ export class ContractorController {
         // Based on the logged in user who created the user
         creatorPersonId: guid,
       };
-      const contractorRes = await this.apiService.post<any>({ url: urlContractor, data: newContractorData });
+      logger.info(`Contract create: person '${personId}' in org ${chosenOrgId} by '${username}'`);
+      const contractorRes = await this.apiService.post<any>({ url: urlContractor, data: newContractorData }, req.user);
 
       if (personUpdated) {
         const urlPerson = `/${getApiBase('metaadmin')}/person/${personId}`;
@@ -116,7 +118,8 @@ export class ContractorController {
           customFriendlyGivenname,
           restrictedMobile,
         };
-        await this.apiService.patch<any>({ url: urlPerson, data: personData });
+        logger.info(`Person update: '${personId}' by '${username}'`);
+        await this.apiService.patch<any>({ url: urlPerson, data: personData }, req.user);
       }
 
       // personUpdated false: the person has an active contract elsewhere, so mobile and name were left as they were
@@ -145,7 +148,8 @@ export class ContractorController {
         const patchContractorData = {
           ttlMonths,
         };
-        res = await this.apiService.patch<{ status: string }>({ url, data: patchContractorData });
+        logger.info(`Contract update: ${contractId} of person '${personId}' by '${req.user.username}'`);
+        res = await this.apiService.patch<{ status: string }>({ url, data: patchContractorData }, req.user);
       }
 
       if (restrictedMobile) {
@@ -153,7 +157,8 @@ export class ContractorController {
         const personData = {
           restrictedMobile,
         };
-        await this.apiService.patch<{ status: string }>({ url: urlPerson, data: personData });
+        logger.info(`Person update: '${personId}' by '${req.user.username}'`);
+        await this.apiService.patch<{ status: string }>({ url: urlPerson, data: personData }, req.user);
       }
 
       return { data: res, message: 'success', status: 200 };
@@ -173,7 +178,8 @@ export class ContractorController {
       await assertCanManageContract(req.user, personId, contractId);
 
       const url = `/${getApiBase('metaadmin')}/contractor/${Number(contractId)}`;
-      const contractorRes = await this.apiService.delete<{ status: string }>({ url });
+      logger.info(`Contract delete: ${Number(contractId)} of person '${personId}' by '${req.user.username}'`);
+      const contractorRes = await this.apiService.delete<{ status: string }>({ url }, req.user);
 
       return { data: contractorRes, message: 'Contractor successfully deleted', status: 204 };
     } catch (error) {

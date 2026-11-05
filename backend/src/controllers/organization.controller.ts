@@ -39,7 +39,7 @@ export class OrganizationController {
     try {
       if (req.user.isSuperAdmin) {
         const url = `/${getApiBase('metaadmin')}/organization?treeLevel=2&companyId=71`;
-        const res = await this.apiService.get<ApiOrganization[]>({ url });
+        const res = await this.apiService.get<ApiOrganization[]>({ url }, req.user);
         const { data } = res;
         const orgs = data?.map(org => ({
           orgId: org.orgId,

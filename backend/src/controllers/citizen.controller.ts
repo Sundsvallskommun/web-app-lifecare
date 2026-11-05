@@ -33,8 +33,6 @@ const lookupRateLimit = rateLimit({
   legacyHeaders: false,
   // Not the session, since logging in again would start a new count.
   keyGenerator: req => (req as RequestWithUser).user?.username?.toLowerCase() ?? ipKeyGenerator(req.ip ?? ''),
-  // The key is the user and IP only a fallback, so the header from nginx does not matter.
-  validate: { xForwardedForHeader: false },
   handler: (_req, _res, next) => next(new HttpException(429, 'Too many lookups')),
 });
 
@@ -64,7 +62,7 @@ export class CitizenController {
       logger.info(`Citizen lookup: '${maskSocialSecurityNumber(SocialSecurityNumber)}' by '${req.user.username}'`);
 
       const urlForGuid = `/${getApiBase('citizen')}/${MUNICIPALITY_ID}/${SocialSecurityNumber}/guid`;
-      const resGuid = await this.apiService.get<any>({ url: urlForGuid });
+      const resGuid = await this.apiService.get<any>({ url: urlForGuid }, req.user);
 
       if (!resGuid || !resGuid.data) {
         throw new HttpException(404, 'GUID not found for the provided SocialSecurityNumber');
@@ -73,7 +71,7 @@ export class CitizenController {
       const personId = resGuid.data;
 
       const url = `/${getApiBase('citizen')}/${MUNICIPALITY_ID}/${personId}`;
-      const res = await this.apiService.get<any>({ url });
+      const res = await this.apiService.get<any>({ url }, req.user);
       const { givenname, lastname } = res.data;
 
       const resData = {

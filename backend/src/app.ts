@@ -111,9 +111,12 @@ const samlStrategy = new Strategy(
       }
 
       if (isSuperAdmin) {
-        const employee = await apiService.get<any>({
-          url: `${getApiBase('employee')}/${MUNICIPALITY_ID}/portalpersondata/personal/${username}`,
-        });
+        const employee = await apiService.get<any>(
+          {
+            url: `${getApiBase('employee')}/${MUNICIPALITY_ID}/portalpersondata/personal/${username}`,
+          },
+          { username: username as string },
+        );
         const { personid: personId } = employee.data;
 
         const findUser: User = {
@@ -214,12 +217,19 @@ class App {
     this.app.use(express.urlencoded({ extended: true }));
     this.app.use(cookieParser());
 
+    this.app.set('trust proxy', 1);
+
     this.app.use(
       session({
         secret: SECRET_KEY,
         resave: false,
         saveUninitialized: false,
         store: sessionStore,
+        cookie: {
+          httpOnly: true,
+          secure: NODE_ENV === 'production',
+          sameSite: 'lax',
+        },
       }),
     );
 

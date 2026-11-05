@@ -125,7 +125,7 @@ describe('refreshContracts (B2)', () => {
 
     await refreshContracts(user);
 
-    expect(api.get).toHaveBeenCalledWith({ url: expect.stringContaining('/contractor/loginname/admin') });
+    expect(api.get).toHaveBeenCalledWith({ url: expect.stringContaining('/contractor/loginname/admin') }, expect.anything());
     expect(user.contracts.map(c => c.orgId)).toEqual([OTHER_ORG]);
   });
 
@@ -365,7 +365,7 @@ describe('the controllers', () => {
     await new AccountController().resetPasswordAndSendSMS(requestAs(admin()), { personId: PERSON, extra: 'x' } as never);
 
     // Only the person id is forwarded, not the rest of the body
-    expect(api.post).toHaveBeenCalledWith(expect.objectContaining({ data: { personId: PERSON } }));
+    expect(api.post).toHaveBeenCalledWith(expect.objectContaining({ data: { personId: PERSON } }), expect.anything());
   });
 
   it('do not reset the password of a person in another org, and answer 403 rather than 500', async () => {
@@ -393,7 +393,7 @@ describe('the controllers', () => {
     await new ContractorController().updateOrgUser(requestAs(admin()), { personId: PERSON, contractId: 100, ttlMonths: 6 });
 
     expect(api.patch).toHaveBeenCalledTimes(1);
-    expect(api.patch).toHaveBeenCalledWith(expect.objectContaining({ data: { ttlMonths: 6 } }));
+    expect(api.patch).toHaveBeenCalledWith(expect.objectContaining({ data: { ttlMonths: 6 } }), expect.anything());
   });
 
   it('do not change the mobile of a person who also has a contract in another org', async () => {
@@ -429,7 +429,10 @@ describe('the controllers', () => {
 
     expect(res.personUpdated).toBe(true);
     expect(api.post).toHaveBeenCalledTimes(1);
-    expect(api.patch).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ restrictedMobile: '0701234567' }) }));
+    expect(api.patch).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ restrictedMobile: '0701234567' }) }),
+      expect.anything(),
+    );
   });
 
   it('create a contract for a person contracted in another org, but leave their mobile and name alone', async () => {
@@ -439,7 +442,7 @@ describe('the controllers', () => {
     const res = await new ContractorController().newOrgUser(requestAs(admin()), newContractor(MY_ORG));
 
     expect(res.personUpdated).toBe(false);
-    expect(api.post).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ orgId: MY_ORG }) }));
+    expect(api.post).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ orgId: MY_ORG }) }), expect.anything());
     expect(api.patch).not.toHaveBeenCalled();
   });
 
@@ -465,7 +468,7 @@ describe('the controllers', () => {
     const res = await new ContractorController().getUserCompanyContractors(requestAs(user));
 
     expect(api.get).toHaveBeenCalledTimes(1);
-    expect(api.get).toHaveBeenCalledWith({ url: expect.stringContaining(`/organization/${MY_ORG}/contractors`) });
+    expect(api.get).toHaveBeenCalledWith({ url: expect.stringContaining(`/organization/${MY_ORG}/contractors`) }, expect.anything());
     expect(res.data).toHaveLength(1);
   });
 
