@@ -5,8 +5,9 @@ import authMiddleware from '@/middlewares/auth.middleware';
 import { HttpException } from '@/exceptions/HttpException';
 import { RequestWithUser } from '@/interfaces/auth.interface';
 import { IsNumber, IsOptional, IsString } from 'class-validator';
-import { Contractor } from '@/interfaces/users.interface';
 import { getApiBase } from '@/config/api-config';
+import { logger } from '@utils/logger';
+import { allowedOrgIds, assertCanEditPerson, assertCanManageContract, assertInOrg, canSetUpPerson, toHttpException } from '@/services/access.service';
 
 interface ResponseData<T> {
   data: T;
@@ -38,108 +39,65 @@ export class PathContractorDTO {
   contractId: number;
   @IsNumber()
   ttlMonths: number;
-  @IsString()
-  restrictedMobile: string;
+  // Person - only sent when it changes, since changing it is denied if the person has an active contract in another org
   @IsString()
   @IsOptional()
-  emailAddress?: string;
+  restrictedMobile?: string;
 }
 
-export class DeleteContractorDTO {
-  @IsNumber()
-  contractId: string;
-  @IsString()
-  personId: string;
-}
 @Controller()
+@UseBefore(authMiddleware)
 export class ContractorController {
   private apiService = new ApiService();
 
-  /**
-   * Check if the logged in user is allowed to modify the contract
-   * @param personId personId of user to modify
-   * @param contractId contractId of contract to modify
-   * @param contracts Contracts of the logged in user
-   * @returns boolean
-   */
-  async allowedToModifyContract(personId: string, contractId: number, contracts: Contractor[]): Promise<boolean> {
-    if (!contracts || !personId || !contractId) {
-      return false;
-    }
-    const url = `/${getApiBase('metaadmin')}/contractor/${personId}`;
-    const contractorRes = await this.apiService.get<Contractor[]>({ url });
-    const { data: contractors } = contractorRes;
-
-    const foundSameContractId = contractors.find(contractor => contractor.contractId === contractId);
-    if (!foundSameContractId) {
-      return false;
-    }
-
-    const loggedInUserGotSameOrgId = contracts.find(contract => contract.orgId === foundSameContractId.orgId);
-
-    if (!loggedInUserGotSameOrgId) {
-      return false;
-    }
-
-    return true;
-  }
-
   @Get('/mycontractors')
   @OpenAPI({ summary: 'Get contractor by login name' })
-  @UseBefore(authMiddleware)
   async getUserCompanyContractors(@Req() req: RequestWithUser): Promise<ResponseData<any>> {
     try {
-      const { contracts, isSuperAdmin } = req.user;
-
-      if (isSuperAdmin) {
+      if (req.user.isSuperAdmin) {
         const url = `/${getApiBase('metaadmin')}/contractors`;
-        const res = await this.apiService.get<any>({ url });
+        const res = await this.apiService.get<any>({ url }, req.user);
         return { data: res.data, message: 'success', status: 200 };
       }
 
-      const orgIds = contracts.map(contract => contract.orgId);
+      const orgIds = [...allowedOrgIds(req.user)];
 
       const contractors = [];
 
       for (let i = 0; i < orgIds.length; i++) {
         const orgId = orgIds[i];
         const url = `/${getApiBase('metaadmin')}/organization/${orgId}/contractors`;
-        const res = await this.apiService.get<any>({ url });
+        const res = await this.apiService.get<any>({ url }, req.user);
         const { data } = res;
         contractors.push(...data);
       }
 
       return { data: contractors, message: 'success', status: 200 };
     } catch (error) {
-      throw new HttpException(500, error.message);
+      throw toHttpException(error);
     }
   }
 
   @Post('/contractor')
   @OpenAPI({ summary: 'Create new contractor for logged in users org' })
-  @UseBefore(authMiddleware)
-  async newOrgUser(@Req() req: RequestWithUser, @Body() body: NewContractorDTO): Promise<ResponseData<any>> {
+  async newOrgUser(@Req() req: RequestWithUser, @Body() body: NewContractorDTO): Promise<ResponseData<any> & { personUpdated: boolean }> {
     try {
       const { personId, ttlMonths, emailAddress, customFriendlyGivenname, restrictedMobile } = body;
-      const { guid, isSuperAdmin, contracts } = req.user;
+      const { guid, isSuperAdmin, username } = req.user;
 
       let chosenOrgId = body.orgId;
 
-      if (!chosenOrgId && contracts.length) {
-        const firstContract = contracts[0];
-        chosenOrgId = firstContract.orgId;
-      }
-
-      if (!isSuperAdmin) {
-        const canCreateInOrg = contracts.find(contract => contract.orgId === chosenOrgId);
-        if (!canCreateInOrg) {
-          throw new HttpException(400, 'Bad data');
-        }
+      if (!chosenOrgId && !isSuperAdmin) {
+        [chosenOrgId] = allowedOrgIds(req.user);
       }
 
       if (!chosenOrgId) {
         throw new HttpException(400, 'Bad data');
       }
+
+      // Both before anything with an effect: the contract is created first, then the person is patched.
+      assertInOrg(req.user, chosenOrgId);
+      const personUpdated = await canSetUpPerson(req.user, personId);
 
       const urlContractor = `/${getApiBase('metaadmin')}/contractor`;
 
@@ -151,38 +109,37 @@ export class ContractorController {
         // Based on the logged in user who created the user
         creatorPersonId: guid,
       };
-      const contractorRes = await this.apiService.post<any>({ url: urlContractor, data: newContractorData });
+      logger.info(`Contract create: person '${personId}' in org ${chosenOrgId} by '${username}'`);
+      const contractorRes = await this.apiService.post<any>({ url: urlContractor, data: newContractorData }, req.user);
 
-      const urlPerson = `/${getApiBase('metaadmin')}/person/${personId}`;
-      const personData = {
-        customFriendlyGivenname,
-        restrictedMobile,
-      };
-      await this.apiService.patch<any>({ url: urlPerson, data: personData });
+      if (personUpdated) {
+        const urlPerson = `/${getApiBase('metaadmin')}/person/${personId}`;
+        const personData = {
+          customFriendlyGivenname,
+          restrictedMobile,
+        };
+        logger.info(`Person update: '${personId}' by '${username}'`);
+        await this.apiService.patch<any>({ url: urlPerson, data: personData }, req.user);
+      }
 
-      return { data: contractorRes, message: 'success', status: 200 };
+      // personUpdated false: the person has an active contract elsewhere, so mobile and name were left as they were
+      return { data: contractorRes, message: 'success', status: 200, personUpdated };
     } catch (error) {
-      throw new HttpException(500, error.message);
+      throw toHttpException(error);
     }
   }
 
   @Patch('/contractor')
   @OpenAPI({ summary: 'Patch user' })
-  @UseBefore(authMiddleware)
   async updateOrgUser(@Req() req: RequestWithUser, @Body() body: PathContractorDTO): Promise<ResponseData<any>> {
     try {
-      const { isSuperAdmin } = req.user;
+      const { personId, contractId, ttlMonths, restrictedMobile } = body;
 
-      if (!isSuperAdmin) {
-        const { personId, contractId } = body;
-        const canModifyContract = await this.allowedToModifyContract(personId, contractId, req.user.contracts);
-
-        if (!canModifyContract) {
-          throw new HttpException(400, 'Bad data');
-        }
+      await assertCanManageContract(req.user, personId, contractId);
+      if (restrictedMobile) {
+        await assertCanEditPerson(req.user, personId);
       }
 
-      const { personId, contractId, ttlMonths, restrictedMobile } = body;
       const url = `/${getApiBase('metaadmin')}/contractor/${contractId}`;
 
       let res: any = '';
@@ -191,48 +148,42 @@ export class ContractorController {
         const patchContractorData = {
           ttlMonths,
         };
-        res = await this.apiService.patch<{ status: string }>({ url, data: patchContractorData });
+        logger.info(`Contract update: ${contractId} of person '${personId}' by '${req.user.username}'`);
+        res = await this.apiService.patch<{ status: string }>({ url, data: patchContractorData }, req.user);
       }
 
-      if (personId && restrictedMobile) {
+      if (restrictedMobile) {
         const urlPerson = `/${getApiBase('metaadmin')}/person/${personId}`;
         const personData = {
           restrictedMobile,
         };
-        await this.apiService.patch<{ status: string }>({ url: urlPerson, data: personData });
+        logger.info(`Person update: '${personId}' by '${req.user.username}'`);
+        await this.apiService.patch<{ status: string }>({ url: urlPerson, data: personData }, req.user);
       }
 
       return { data: res, message: 'success', status: 200 };
     } catch (error) {
-      throw new HttpException(500, error.message);
+      throw toHttpException(error);
     }
   }
 
   @Delete('/contractor/:contractId/:personId')
   @OpenAPI({ summary: 'Delete contractor by contractId' })
-  @UseBefore(authMiddleware)
   async deleteOrgUser(
     @Req() req: RequestWithUser,
     @Param('contractId') contractId: number,
     @Param('personId') personId: string,
   ): Promise<ResponseData<any>> {
     try {
-      const { isSuperAdmin } = req.user;
+      await assertCanManageContract(req.user, personId, contractId);
 
-      if (!isSuperAdmin) {
-        const canModifyContract = await this.allowedToModifyContract(personId, contractId, req.user.contracts);
-
-        if (!canModifyContract) {
-          throw new HttpException(400, 'Bad data');
-        }
-      }
-
-      const url = `/${getApiBase('metaadmin')}/contractor/${contractId}`;
-      const contractorRes = await this.apiService.delete<{ status: string }>({ url });
+      const url = `/${getApiBase('metaadmin')}/contractor/${Number(contractId)}`;
+      logger.info(`Contract delete: ${Number(contractId)} of person '${personId}' by '${req.user.username}'`);
+      const contractorRes = await this.apiService.delete<{ status: string }>({ url }, req.user);
 
       return { data: contractorRes, message: 'Contractor successfully deleted', status: 204 };
     } catch (error) {
-      throw new HttpException(500, error.message);
+      throw toHttpException(error);
     }
   }
 }
