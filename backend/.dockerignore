@@ -5,8 +5,6 @@
 # code formatter
 eslint.config.js
 .editorconfig
-.huskyrc
-.lintstagedrc.json
 .prettierrc
 
 # test
