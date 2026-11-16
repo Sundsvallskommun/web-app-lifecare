@@ -21,6 +21,7 @@ envalid.cleanEnv(process.env, {
 const withBundleAnalyzer = bundleAnalyzer({ enabled: process.env.ANALYZE === 'true' });
 
 module.exports = withBundleAnalyzer({
+  output: 'standalone',
   images: {
     remotePatterns: process.env.DOMAIN_NAME ? [{ protocol: 'https', hostname: process.env.DOMAIN_NAME }] : [],
     formats: ['image/avif', 'image/webp'],

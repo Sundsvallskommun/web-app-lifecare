@@ -5,8 +5,6 @@ import { validationMetadatasToSchemas } from 'class-validator-jsonschema';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
-import createMemoryStore from 'memorystore';
-import createFileStore from 'session-file-store';
 import express from 'express';
 import helmet from 'helmet';
 import hpp from 'hpp';
@@ -35,7 +33,6 @@ import {
   SAML_PRIVATE_KEY,
   SAML_PUBLIC_KEY,
   BASE_URL_PREFIX,
-  SESSION_MEMORY,
   MUNICIPALITY_ID,
 } from '@config';
 import errorMiddleware from '@middlewares/error.middleware';
@@ -50,11 +47,6 @@ import { join } from 'path';
 import { User } from '@interfaces/users.interface';
 import { fetchContracts, refreshContracts } from '@/services/access.service';
 import { getApiBase } from '@/config/api-config';
-
-const SessionStoreCreate = SESSION_MEMORY ? createMemoryStore(session) : createFileStore(session);
-const sessionTTL = 4 * 24 * 60 * 60;
-// NOTE: memory uses ms while file uses seconds
-const sessionStore = new SessionStoreCreate(SESSION_MEMORY ? { checkPeriod: sessionTTL * 1000 } : { sessionTTL, path: './data/sessions' });
 
 const apiService = new ApiService();
 
@@ -179,7 +171,10 @@ class App {
   public port: string | number;
   public swaggerEnabled: boolean;
 
-  constructor(Controllers: Function[]) {
+  constructor(
+    Controllers: Function[],
+    private readonly sessionStore: session.Store,
+  ) {
     this.app = express();
     this.env = NODE_ENV || 'development';
     this.port = PORT || 3000;
@@ -196,7 +191,7 @@ class App {
   }
 
   public listen() {
-    this.app.listen(this.port, () => {
+    return this.app.listen(this.port, () => {
       logger.info(`=================================`);
       logger.info(`======= ENV: ${this.env} =======`);
       logger.info(`🚀 App listening on the port ${this.port}`);
@@ -224,7 +219,7 @@ class App {
         secret: SECRET_KEY,
         resave: false,
         saveUninitialized: false,
-        store: sessionStore,
+        store: this.sessionStore,
         cookie: {
           httpOnly: true,
           secure: NODE_ENV === 'production',
@@ -358,10 +353,6 @@ class App {
   }
 
   private initializeDataFolders() {
-    const databaseDir: string = join(__dirname, '../data/database');
-    if (!existsSync(databaseDir)) {
-      mkdirSync(databaseDir, { recursive: true });
-    }
     const logsDir: string = join(__dirname, '../data/logs');
     if (!existsSync(logsDir)) {
       mkdirSync(logsDir, { recursive: true });

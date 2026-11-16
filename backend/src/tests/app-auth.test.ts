@@ -3,6 +3,7 @@ import type { Server } from 'http';
 import type { AddressInfo } from 'net';
 import { getMetadataArgsStorage } from 'routing-controllers';
 import App from '@/app';
+import session from 'express-session';
 import { BASE_URL_PREFIX } from '@config';
 import { registeredControllers } from '@/registered-controllers';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -47,7 +48,7 @@ let baseUrl: string;
 const path = (route: string) => `${baseUrl}${BASE_URL_PREFIX}${route}`;
 
 beforeAll(async () => {
-  const app = new App(registeredControllers);
+  const app = new App(registeredControllers, new session.MemoryStore());
 
   await new Promise<void>(resolve => {
     server = app.getServer().listen(0, '127.0.0.1', () => resolve());

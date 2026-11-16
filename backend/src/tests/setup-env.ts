@@ -18,7 +18,6 @@ const defaults: Record<string, string> = {
   LOG_FORMAT: 'dev',
   LOG_DIR: '../../data/logs',
   SWAGGER_ENABLED: 'false',
-  SESSION_MEMORY: 'true',
   ORIGIN: 'http://localhost:3000',
   CREDENTIALS: 'true',
   SAML_CALLBACK_URL: 'http://localhost:3001/api/saml/login/callback',

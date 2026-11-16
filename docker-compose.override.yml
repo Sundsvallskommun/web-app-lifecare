@@ -33,7 +33,22 @@ services:
       LOG_FORMAT: ${LOG_FORMAT-dev}
       LOG_DIR: ${LOG_DIR-../../data/logs}
       CREDENTIALS: ${CREDENTIALS-true}
+      # Redis is required for multi-instance deployments. Leave REDIS_HOST empty
+      # only for single-instance local development.
+      REDIS_HOST: ${REDIS_HOST-}
+      # Must be unique per application/credential boundary when Redis is shared.
+      REDIS_KEY_PREFIX: ${REDIS_KEY_PREFIX-}
+      # The application defaults to 6379 when REDIS_HOST is set.
+      REDIS_PORT: ${REDIS_PORT-}
+      REDIS_PASSWORD: ${REDIS_PASSWORD-}
   frontend:
     environment:
+      # The image is built against the placeholders in frontend/.env-cicd; these
+      # replace them at container start. BASE_PATH is deliberately absent — Next
+      # resolves basePath while building, so changing it means rebuilding.
       # URL to backend
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?err}
+      DOMAIN_NAME: ${DOMAIN_NAME-}
+      HEALTH_AUTH: ${HEALTH_AUTH-false}
+      HEALTH_USERNAME: ${HEALTH_USERNAME-}
+      HEALTH_PASSWORD: ${HEALTH_PASSWORD-}
