@@ -59,9 +59,11 @@ export class CitizenController {
         throw new HttpException(400, 'Bad Request');
       }
 
-      logger.info(`Citizen lookup: '${maskSocialSecurityNumber(SocialSecurityNumber)}' by '${req.user.username}'`);
+      const personalNumber = SocialSecurityNumber.replace('-', '');
 
-      const urlForGuid = `/${getApiBase('citizen')}/${MUNICIPALITY_ID}/${SocialSecurityNumber}/guid`;
+      logger.info(`Citizen lookup: '${maskSocialSecurityNumber(personalNumber)}' by '${req.user.username}'`);
+
+      const urlForGuid = `/${getApiBase('citizen')}/${MUNICIPALITY_ID}/${personalNumber}/guid`;
       const resGuid = await this.apiService.get<any>({ url: urlForGuid }, req.user);
 
       if (!resGuid || !resGuid.data) {
