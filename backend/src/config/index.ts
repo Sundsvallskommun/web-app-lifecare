@@ -46,6 +46,11 @@ export function createRedisConfig(environment: NodeJS.ProcessEnv): RedisConfig {
 
 export const REDIS_CONFIG = createRedisConfig(process.env);
 
+// 'auto': the cookie is Secure when Express sees the request as HTTPS (directly, or via
+// X-Forwarded-Proto from a trusted proxy). A hard `true` makes express-session silently drop
+// the cookie when the proxy does not forward the protocol, which breaks login entirely.
+export const SESSION_COOKIE_SECURE: boolean | 'auto' = process.env.NODE_ENV === 'production' ? 'auto' : false;
+
 /** Session lifetime, used as the session store TTL. */
 export const SESSION_MAX_AGE_MS = 4 * 24 * 60 * 60 * 1000;
 
