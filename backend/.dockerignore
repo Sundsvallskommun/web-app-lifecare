@@ -1,18 +1,20 @@
-# compiled output
+# Version control and local configuration
+.git
+.env*
 .vscode
+
+# Dependencies, generated output, and runtime data
 /node_modules
+/dist
+/coverage
+/data
+src/tests
+src/**/*.spec.ts
+src/**/*.test.ts
+*.log
 
-# code formatter
-.eslintrc
-.eslintignore
-.editorconfig
-.huskyrc
-.lintstagedrc.json
-.prettierrc
-
-# test
-jest.config.js
-
-# docker
+# Docker metadata is not part of the application image
+.dockerignore
 Dockerfile
-docker-compose.yml
+docker-compose*.yml
+Makefile

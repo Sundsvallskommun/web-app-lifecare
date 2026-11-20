@@ -5,8 +5,6 @@ import { validationMetadatasToSchemas } from 'class-validator-jsonschema';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
-import createMemoryStore from 'memorystore';
-import createFileStore from 'session-file-store';
 import express from 'express';
 import helmet from 'helmet';
 import hpp from 'hpp';
@@ -28,6 +26,7 @@ import {
   SAML_LOGOUT_CALLBACK_URL,
   SAML_SUCCESS_REDIRECT,
   SAML_FAILURE_REDIRECT,
+  SESSION_COOKIE_SECURE,
   SAML_LOGOUT_REDIRECT,
   SAML_ENTRY_SSO,
   SAML_ISSUER,
@@ -35,22 +34,20 @@ import {
   SAML_PRIVATE_KEY,
   SAML_PUBLIC_KEY,
   BASE_URL_PREFIX,
-  SESSION_MEMORY,
   MUNICIPALITY_ID,
 } from '@config';
 import errorMiddleware from '@middlewares/error.middleware';
 import { logger, stream } from '@utils/logger';
+import authMiddleware from '@middlewares/auth.middleware';
+import { auditGlobalAuth } from '@middlewares/global-auth';
+import { Ctor } from '@interfaces/global-auth.interface';
 import { Profile } from '@interfaces/profile.interface';
 import ApiService from '@/services/api.service';
 import { HttpException } from '@exceptions/HttpException';
 import { join } from 'path';
-import { Contractor, User } from '@interfaces/users.interface';
+import { User } from '@interfaces/users.interface';
+import { fetchContracts, refreshContracts } from '@/services/access.service';
 import { getApiBase } from '@/config/api-config';
-
-const SessionStoreCreate = SESSION_MEMORY ? createMemoryStore(session) : createFileStore(session);
-const sessionTTL = 4 * 24 * 60 * 60;
-// NOTE: memory uses ms while file uses seconds
-const sessionStore = new SessionStoreCreate(SESSION_MEMORY ? { checkPeriod: sessionTTL * 1000 } : { sessionTTL, path: './data/sessions' });
 
 const apiService = new ApiService();
 
@@ -107,9 +104,12 @@ const samlStrategy = new Strategy(
       }
 
       if (isSuperAdmin) {
-        const employee = await apiService.get<any>({
-          url: `${getApiBase('employee')}/${MUNICIPALITY_ID}/portalpersondata/personal/${username}`,
-        });
+        const employee = await apiService.get<any>(
+          {
+            url: `${getApiBase('employee')}/${MUNICIPALITY_ID}/portalpersondata/personal/${username}`,
+          },
+          { username: username as string },
+        );
         const { personid: personId } = employee.data;
 
         const findUser: User = {
@@ -125,26 +125,16 @@ const samlStrategy = new Strategy(
         return done(null, findUser);
       }
 
-      const metaUser = await apiService.get<Contractor[]>({ url: `/${getApiBase('metaadmin')}/contractor/loginname/${username}` });
+      const contracts = await fetchContracts(username as string);
 
-      if (metaUser.data.length <= 0) {
+      if (contracts.length <= 0) {
         return done({
           name: 'MISSING_IN_METAADMIN',
           message: 'Missing user in meta admin',
         });
       }
 
-      const { personId, orgId, orgName, retireDate } = metaUser.data[0];
-
-      const contracts = metaUser.data?.map(contract => ({
-        personId: contract.personId,
-        contractId: contract.contractId,
-        orgId: contract.orgId,
-        orgName: contract.orgName,
-        isEmergencyClosed: contract.isEmergencyClosed,
-        hireDate: contract.hireDate,
-        retireDate: contract.retireDate,
-      }));
+      const { personId, orgId, orgName, retireDate } = contracts[0];
 
       const findUser: User = {
         guid: personId,
@@ -159,6 +149,7 @@ const samlStrategy = new Strategy(
         retireDate,
         personId,
         contracts,
+        contractsFetchedAt: Date.now(),
       };
 
       done(null, findUser);
@@ -181,7 +172,10 @@ class App {
   public port: string | number;
   public swaggerEnabled: boolean;
 
-  constructor(Controllers: Function[]) {
+  constructor(
+    Controllers: Function[],
+    private readonly sessionStore: session.Store,
+  ) {
     this.app = express();
     this.env = NODE_ENV || 'development';
     this.port = PORT || 3000;
@@ -198,7 +192,7 @@ class App {
   }
 
   public listen() {
-    this.app.listen(this.port, () => {
+    return this.app.listen(this.port, () => {
       logger.info(`=================================`);
       logger.info(`======= ENV: ${this.env} =======`);
       logger.info(`🚀 App listening on the port ${this.port}`);
@@ -219,18 +213,38 @@ class App {
     this.app.use(express.urlencoded({ extended: true }));
     this.app.use(cookieParser());
 
+    this.app.set('trust proxy', 1);
+
     this.app.use(
       session({
         secret: SECRET_KEY,
         resave: false,
         saveUninitialized: false,
-        store: sessionStore,
+        store: this.sessionStore,
+        cookie: {
+          httpOnly: true,
+          secure: SESSION_COOKIE_SECURE,
+          sameSite: 'lax',
+        },
       }),
     );
 
     this.app.use(passport.initialize());
     this.app.use(passport.session());
     passport.use('saml', samlStrategy);
+
+    // Contracts decide which orgs an admin may act within, so they are re-read from metaadmin
+    // when stale instead of trusted from login for the whole session.
+    this.app.use(async (req, _res, next) => {
+      if (!req.isAuthenticated()) return next();
+
+      try {
+        await refreshContracts(req.user as User);
+        next();
+      } catch (error) {
+        next(error);
+      }
+    });
 
     this.app.get(
       `${BASE_URL_PREFIX}/saml/login`,
@@ -276,20 +290,30 @@ class App {
       });
     });
 
-    this.app.post(
-      `${BASE_URL_PREFIX}/saml/login/callback`,
-      (req, res, next) => {
-        passport.authenticate('saml', {
-          failureRedirect: SAML_FAILURE_REDIRECT,
-        })(req, res, next);
-      },
-      (_req, res, _next) => {
-        res.redirect(SAML_SUCCESS_REDIRECT);
-      },
-    );
+    this.app.post(`${BASE_URL_PREFIX}/saml/login/callback`, (req, res, next) => {
+      passport.authenticate('saml', (err, user) => {
+        if (err) {
+          logger.error(`SAML callback error :: name=${err?.name} :: message=${err?.message}`);
+          return next(err);
+        }
+        if (!user) {
+          logger.error('SAML callback failed :: no user returned');
+          return res.redirect(SAML_FAILURE_REDIRECT);
+        }
+        req.login(user, loginErr => {
+          if (loginErr) {
+            logger.error(`SAML req.login error :: ${loginErr?.message ?? loginErr}`);
+            return next(loginErr);
+          }
+          return res.redirect(SAML_SUCCESS_REDIRECT);
+        });
+      })(req, res, next);
+    });
   }
 
   private initializeRoutes(controllers: Function[]) {
+    auditGlobalAuth({ authMiddleware, controllers: controllers as Ctor[], logger });
+
     useExpressServer(this.app, {
       routePrefix: BASE_URL_PREFIX,
       cors: {
@@ -338,10 +362,6 @@ class App {
   }
 
   private initializeDataFolders() {
-    const databaseDir: string = join(__dirname, '../data/database');
-    if (!existsSync(databaseDir)) {
-      mkdirSync(databaseDir, { recursive: true });
-    }
     const logsDir: string = join(__dirname, '../data/logs');
     if (!existsSync(logsDir)) {
       mkdirSync(logsDir, { recursive: true });

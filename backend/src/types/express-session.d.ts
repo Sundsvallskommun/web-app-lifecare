@@ -1,5 +1,4 @@
 import { User } from '@/interfaces/users.interface';
-import { Session } from 'express-session';
 
 interface Engagement {
   organizationName: string;

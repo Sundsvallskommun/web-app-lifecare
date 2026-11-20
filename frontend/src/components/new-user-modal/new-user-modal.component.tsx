@@ -17,6 +17,12 @@ import React, { ChangeEvent, useEffect, useRef, useState } from 'react';
 import useCompanyStore from 'src/store/useCompanyStore.store';
 import useContractorStore from 'src/store/useContractorStore.store';
 
+const lookupErrorMessage = (status?: number): string => {
+  if (status === 429) return 'För många uppslag. Vänta en stund och försök igen.';
+  if (status === 404) return 'Ingen person hittades för personnumret.';
+  return 'Error när persond detaljerna skulle hämtas. Vänligen försök igen.';
+};
+
 const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, triggerElement }) => {
   // User info
   const [personId, setPersonId] = useState('');
@@ -54,6 +60,8 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, trig
     if (!show) {
       // Reset all internal state when the modal is closed
       setSSN('');
+      setIsSSNValid(false);
+      setPersonId('');
       setFirstName('');
       setLastName('');
       setNickName('');
@@ -107,31 +115,35 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, trig
     }
 
     for (const orgId of companyIds) {
-      try {
-        const { error } = await newContractor({
-          personId: personId,
-          ttlMonths: monthsToAdd,
-          emailAddress: email,
-          orgId: parseInt(orgId, 10),
-          restrictedMobile: phone,
-        });
-        if (error) {
-          throw error;
-        }
-        snackbar({
-          message: `Användaren skapades för orgId: ${orgId}.`,
-          status: 'success',
-          position: 'bottom-left',
-        });
-      } catch (error) {
+      const { error, status, personUpdated } = await newContractor({
+        personId: personId,
+        ttlMonths: monthsToAdd,
+        emailAddress: email,
+        orgId: parseInt(orgId, 10),
+        restrictedMobile: phone,
+      });
+
+      if (error) {
         console.error(`Error creating contractor for orgId ${orgId}:`, error);
         snackbar({
-          message: `Error när användaren skapades för orgId ${orgId}.`,
+          message:
+            status === 403
+              ? `Du saknar behörighet att skapa användare för orgId ${orgId}.`
+              : `Error när användaren skapades för orgId ${orgId}.`,
           status: 'error',
           position: 'bottom-left',
         });
         break;
       }
+
+      snackbar({
+        message:
+          personUpdated === false
+            ? `Användaren skapades för orgId: ${orgId}. Telefonnummer och namn ändrades inte, eftersom personen har avtal i en annan organisation.`
+            : `Användaren skapades för orgId: ${orgId}.`,
+        status: personUpdated === false ? 'warning' : 'success',
+        position: 'bottom-left',
+      });
     }
 
     if (onSave) {
@@ -146,10 +158,17 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, trig
     try {
       const citizen = await lookUpCitizen(SSN);
 
-      if (citizen.data) {
+      if (citizen.error) {
+        snackbar({
+          message: lookupErrorMessage(citizen.status),
+          status: 'error',
+          position: 'bottom-left',
+        });
+      } else if (citizen.data) {
         setPersonId(citizen.data.personId);
         setFirstName(citizen.data.givenname);
         setLastName(citizen.data.lastname);
+        setInfoButtonClicked(true);
 
         snackbar({
           message: 'Informationen hämtades.',
@@ -172,7 +191,6 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, trig
       });
     } finally {
       setIsLoading(false);
-      setInfoButtonClicked(true);
     }
   };
 
@@ -200,6 +218,10 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, trig
     setIsSSNValid(isValid);
     setSSNError(isValid ? '' : 'Ogiltigt personnummer, det behöver vara 12 siffror.');
     setInfoButtonClicked(false);
+    // The fetched person belongs to the previous number, and saving uses the personId
+    setPersonId('');
+    setFirstName('');
+    setLastName('');
   };
 
   const handleEmailChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -280,6 +302,7 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ onClose, onSave, show, trig
             onChange={handleSSNChange}
             aria-describedby="ssnDescription"
             id="SSNInput"
+            disabled={isLoading}
             aria-required="true"
             autoComplete="off"
           />

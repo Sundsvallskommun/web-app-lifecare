@@ -47,7 +47,7 @@ export interface ContractorUpdateData {
   ttlMonths: number;
   contractId: number;
   personId: string;
-  restrictedMobile: string;
+  restrictedMobile?: string;
 }
 
 export const getContractorByLoginName = async (): Promise<{ data: Contractor[]; error?: Error; status?: number }> => {
@@ -86,28 +86,34 @@ export const lookUpCitizen = async (
 
 export const newContractor = async (
   contractor: NewContractor
-): Promise<{ data?: Contractor; message?: string; error?: Error }> => {
+): Promise<{ data?: Contractor; message?: string; error?: Error; status?: number; personUpdated?: boolean }> => {
   try {
     const contractorData = {
       ...contractor,
       // orgName: Array.isArray(contractor.orgName) ? contractor.orgName.join(', ') : contractor.orgName,
     };
 
-    const response = await apiService.post<Contractor>(`/contractor`, contractorData);
-    return { data: response.data, message: 'Contractor created successfully' };
+    // personUpdated is false when the person has a contract in another org: mobile and name are then left as they were
+    const response = await apiService.post<Contractor & { personUpdated?: boolean }>(`/contractor`, contractorData);
+    return {
+      data: response.data,
+      message: 'Contractor created successfully',
+      personUpdated: response.data?.personUpdated,
+    };
   } catch (e) {
     return {
       data: emptyContractor,
       error: e.response?.status
         ? new Error(`Error ${e.response.status}: ${e.response.statusText}`)
         : new Error('An unknown error occurred'),
+      status: e.response?.status,
     };
   }
 };
 
 export const updateContractorDetails = async (
   updatedData: ContractorUpdateData
-): Promise<{ data?: Contractor; message?: string; error?: Error }> => {
+): Promise<{ data?: Contractor; message?: string; error?: Error; status?: number }> => {
   try {
     const response = await apiService.patch<Contractor>(`/contractor`, updatedData);
     return { data: response.data, message: 'Contractor updated successfully' };
@@ -117,6 +123,7 @@ export const updateContractorDetails = async (
       error: e.response?.status
         ? new Error(`Error ${e.response.status}: ${e.response.statusText}`)
         : new Error('An unknown error occurred'),
+      status: e.response?.status,
     };
   }
 };
@@ -126,7 +133,7 @@ export const defaultDeleteMessage = 'Delete operation not successful';
 export const deleteContractor = async (
   contractId: number,
   personId: string
-): Promise<{ message?: string; error?: Error }> => {
+): Promise<{ message?: string; error?: Error; status?: number }> => {
   try {
     await apiService.delete(`/contractor/${contractId}/${personId}`);
 
@@ -137,6 +144,7 @@ export const deleteContractor = async (
       error: e.response?.status
         ? new Error(`Error ${e.response.status}: ${e.response.statusText}`)
         : new Error('An unknown error occurred'),
+      status: e.response?.status,
     };
   }
 };

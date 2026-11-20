@@ -1,41 +1,43 @@
-# Install dependencies only when needed
-FROM node:22-slim AS deps
-# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
-#RUN apk add --no-cache libc6-compat
-RUN apt-get update
-RUN apt-get install -y openssl
+FROM node:22-slim AS base
+
 WORKDIR /app
+
+FROM base AS dependencies
+
 COPY package.json yarn.lock ./
-RUN yarn install --frozen-lockfile
+RUN yarn install --frozen-lockfile --ignore-scripts --non-interactive
 
-# If using npm with a `package-lock.json` comment out above and use below instead
-# COPY package.json package-lock.json ./
-# RUN npm ci
+FROM dependencies AS builder
 
-# Rebuild the source code only when needed
-FROM node:22-slim AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-
 RUN yarn build
 
-# Production image, copy all the files and run next
-FROM node:22-slim AS runner
-RUN apt-get update
-RUN apt-get install -y openssl
-WORKDIR /app
+FROM base AS production-dependencies
 
-ENV NODE_ENV production
+ENV NODE_ENV=production
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nodejs
+COPY package.json yarn.lock ./
+RUN yarn install --frozen-lockfile --ignore-scripts --production=true --non-interactive \
+  && yarn cache clean
 
-COPY --from=builder --chown=nodejs:nodejs /app/ ./
+FROM base AS runner
 
-USER nodejs
+ENV NODE_ENV=production \
+  PORT=3000
+
+COPY --from=production-dependencies --chown=root:root /app/node_modules ./node_modules
+COPY --from=builder --chown=root:root /app/dist ./dist
+COPY --chown=root:root package.json ./package.json
+
+# UID 1001 preserves ownership compatibility with volumes created by previous
+# releases. Group 0 write access also supports OpenShift's arbitrary runtime UID.
+RUN useradd --uid 1001 --gid 0 --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin app \
+  && mkdir -p /app/data/logs /app/data/sessions \
+  && chown -R 1001:0 /app/data \
+  && chmod -R g=u /app/data
+
+USER 1001:0
 
 EXPOSE 3000
-ENV PORT 3000
 
 CMD ["node", "./dist/server.js"]
