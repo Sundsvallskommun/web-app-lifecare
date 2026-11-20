@@ -26,6 +26,7 @@ import {
   SAML_LOGOUT_CALLBACK_URL,
   SAML_SUCCESS_REDIRECT,
   SAML_FAILURE_REDIRECT,
+  SESSION_COOKIE_SECURE,
   SAML_LOGOUT_REDIRECT,
   SAML_ENTRY_SSO,
   SAML_ISSUER,
@@ -222,7 +223,7 @@ class App {
         store: this.sessionStore,
         cookie: {
           httpOnly: true,
-          secure: NODE_ENV === 'production',
+          secure: SESSION_COOKIE_SECURE,
           sameSite: 'lax',
         },
       }),
@@ -289,17 +290,25 @@ class App {
       });
     });
 
-    this.app.post(
-      `${BASE_URL_PREFIX}/saml/login/callback`,
-      (req, res, next) => {
-        passport.authenticate('saml', {
-          failureRedirect: SAML_FAILURE_REDIRECT,
-        })(req, res, next);
-      },
-      (_req, res, _next) => {
-        res.redirect(SAML_SUCCESS_REDIRECT);
-      },
-    );
+    this.app.post(`${BASE_URL_PREFIX}/saml/login/callback`, (req, res, next) => {
+      passport.authenticate('saml', (err, user) => {
+        if (err) {
+          logger.error(`SAML callback error :: name=${err?.name} :: message=${err?.message}`);
+          return next(err);
+        }
+        if (!user) {
+          logger.error('SAML callback failed :: no user returned');
+          return res.redirect(SAML_FAILURE_REDIRECT);
+        }
+        req.login(user, loginErr => {
+          if (loginErr) {
+            logger.error(`SAML req.login error :: ${loginErr?.message ?? loginErr}`);
+            return next(loginErr);
+          }
+          return res.redirect(SAML_SUCCESS_REDIRECT);
+        });
+      })(req, res, next);
+    });
   }
 
   private initializeRoutes(controllers: Function[]) {

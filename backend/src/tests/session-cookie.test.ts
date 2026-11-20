@@ -67,8 +67,24 @@ describe('the session cookie in production', () => {
     expect(cookie).not.toMatch(/Expires/i);
   });
 
-  it('is not set over plain HTTP', async () => {
-    expect(await setCookie()).toBeNull();
+  it('is still set over plain HTTP, without Secure, so a proxy that does not forward the protocol cannot break login', async () => {
+    const cookie = await setCookie();
+
+    expect(cookie).toMatch(/^connect\.sid=/);
+    expect(cookie).not.toMatch(/;\s*Secure/i);
+  });
+});
+
+describe('the Secure setting', () => {
+  it.each([
+    ['production', 'auto'],
+    ['development', false],
+  ])('is %s: %s', async (env, expected) => {
+    process.env.NODE_ENV = env;
+    vi.resetModules();
+    const { SESSION_COOKIE_SECURE } = await import('@config');
+
+    expect(SESSION_COOKIE_SECURE).toBe(expected);
   });
 });
 
