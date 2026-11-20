@@ -1,7 +1,22 @@
-Dockerfile
-.dockerignore
-node_modules
-npm-debug.log
-README.md
-.next
+# Version control and local configuration
 .git
+.env*
+# The CI/CD placeholder env is part of the build, unlike every other .env file.
+!.env-cicd
+
+# Dependencies, generated output, and local artifacts
+node_modules
+.next
+coverage
+cypress
+src/**/*.spec.ts
+src/**/*.spec.tsx
+src/**/*.test.ts
+src/**/*.test.tsx
+*.log
+README.md
+
+# Docker metadata is not part of the application image
+.dockerignore
+Dockerfile
+docker-compose*.yml

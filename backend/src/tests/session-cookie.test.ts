@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import type { Server } from 'http';
 import type { AddressInfo } from 'net';
+import session from 'express-session';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 /**
@@ -21,7 +22,7 @@ const boot = async (env: string) => {
   const { default: App } = await import('@/app');
   const { registeredControllers } = await import('@/registered-controllers');
 
-  const app = new App(registeredControllers).getServer();
+  const app = new App(registeredControllers, new session.MemoryStore()).getServer();
   app.get('/session-test', (req, res) => {
     Object.assign(req.session, { touched: true });
     res.send('ok');
